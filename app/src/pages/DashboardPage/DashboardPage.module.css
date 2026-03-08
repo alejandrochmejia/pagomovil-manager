@@ -1,0 +1,22 @@
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.chartCard {
+  margin-top: var(--space-md);
+}
+
+.chartTitle {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}

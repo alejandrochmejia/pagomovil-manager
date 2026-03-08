@@ -1,0 +1,49 @@
+.card {
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.card:active {
+  box-shadow: var(--shadow-md);
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.monto {
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-success);
+}
+
+.fecha {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.details {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.banco {
+  font-weight: 500;
+}
+
+.separator {
+  color: var(--color-text-muted);
+}
+
+.ref {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  font-family: var(--font-mono);
+}
