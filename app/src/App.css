@@ -7,6 +7,7 @@
 
 .app-content {
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
   padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
 }

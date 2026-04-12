@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/database';
 import { getDashboardStats, getDefaultDateRange } from '@/services/stats.service';
-import { formatCurrencyBs, formatCurrency } from '@/utils/format';
+import { useBcvRate } from '@/hooks/useBcvRate';
+import { formatCurrencyBs, formatCurrencyUsd, formatCurrency } from '@/utils/format';
 import type { DateRange, DashboardStats } from '@/types/common';
+import { IconArrowsExchange } from '@tabler/icons-react';
+import BcvRateBar from '@/components/molecules/BcvRateBar/BcvRateBar';
 import StatCard from '@/components/molecules/StatCard/StatCard';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import Spinner from '@/components/atoms/Spinner/Spinner';
@@ -32,12 +35,32 @@ const COLORS = [
 export default function DashboardPage() {
   const [range, setRange] = useState<DateRange>(getDefaultDateRange);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [showUsd, setShowUsd] = useState(false);
+  const { rate, loading: rateLoading, error: rateError, refresh: refreshRate } = useBcvRate();
 
   const pagosCount = useLiveQuery(() => db.pagos.count());
 
   useEffect(() => {
     getDashboardStats(range).then(setStats);
   }, [range, pagosCount]);
+
+  const fmt = useCallback(
+    (bs: number) => {
+      if (showUsd && rate) return formatCurrencyUsd(bs / rate.promedio);
+      return formatCurrencyBs(bs);
+    },
+    [showUsd, rate],
+  );
+
+  const fmtShort = useCallback(
+    (bs: number) => {
+      if (showUsd && rate) return formatCurrency(bs / rate.promedio);
+      return formatCurrency(bs);
+    },
+    [showUsd, rate],
+  );
+
+  const canToggle = !!rate;
 
   if (!stats) {
     return (
@@ -52,20 +75,43 @@ export default function DashboardPage() {
     <div className="page">
       <h1>Dashboard</h1>
 
+      <BcvRateBar
+        rate={rate}
+        loading={rateLoading}
+        error={rateError}
+        onRefresh={refreshRate}
+      />
+
+      <div className={styles.currencyHeader}>
+        <span className={styles.currencyLabel}>
+          Montos en {showUsd ? 'USD' : 'Bs.'}
+        </span>
+        {canToggle && (
+          <button
+            className={styles.toggleBtn}
+            onClick={() => setShowUsd((v) => !v)}
+            aria-label="Cambiar moneda"
+          >
+            <IconArrowsExchange size={16} stroke={1.5} />
+            <span>{showUsd ? 'Ver en Bs.' : 'Ver en USD'}</span>
+          </button>
+        )}
+      </div>
+
       <div className={styles.statsGrid}>
         <StatCard
           label="Hoy"
-          value={formatCurrencyBs(stats.totalHoy)}
+          value={fmt(stats.totalHoy)}
           sublabel={`${stats.cantidadHoy} pagos`}
         />
         <StatCard
           label="Este mes"
-          value={formatCurrencyBs(stats.totalMes)}
+          value={fmt(stats.totalMes)}
           sublabel={`${stats.cantidadMes} pagos`}
         />
         <StatCard
           label="Promedio"
-          value={formatCurrencyBs(stats.promedioMes)}
+          value={fmt(stats.promedioMes)}
           sublabel="por pago este mes"
         />
       </div>
@@ -83,9 +129,9 @@ export default function DashboardPage() {
                 tickFormatter={(v: string) => v.slice(5)}
                 fontSize={11}
               />
-              <YAxis fontSize={11} tickFormatter={(v: number) => formatCurrency(v)} />
+              <YAxis fontSize={11} tickFormatter={(v: number) => fmtShort(v)} />
               <Tooltip
-                formatter={(value) => [formatCurrencyBs(Number(value)), 'Total']}
+                formatter={(value) => [fmt(Number(value)), 'Total']}
                 labelFormatter={(label) => String(label)}
               />
               <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
@@ -118,7 +164,7 @@ export default function DashboardPage() {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => formatCurrencyBs(Number(value))} />
+              <Tooltip formatter={(value) => fmt(Number(value))} />
               <Legend fontSize={11} />
             </PieChart>
           </ResponsiveContainer>

@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useEffect, useState } from 'react';
+import { type ReactNode, useRef, useEffect } from 'react';
 import styles from './PageTransition.module.css';
 
 interface PageTransitionProps {
@@ -8,24 +8,26 @@ interface PageTransitionProps {
 }
 
 export default function PageTransition({ routeKey, direction, children }: PageTransitionProps) {
-  const [animClass, setAnimClass] = useState('');
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const prevKey = useRef(routeKey);
 
   useEffect(() => {
     if (prevKey.current === routeKey) return;
     prevKey.current = routeKey;
 
-    if (direction === 'none') return;
+    const el = wrapperRef.current;
+    if (!el || direction === 'none') return;
 
     const cls = direction === 'right' ? styles.slideFromRight : styles.slideFromLeft;
-    setAnimClass(cls);
+    el.classList.add(cls);
 
-    const id = setTimeout(() => setAnimClass(''), 300);
-    return () => clearTimeout(id);
+    const onEnd = () => el.classList.remove(cls);
+    el.addEventListener('animationend', onEnd, { once: true });
+    return () => el.removeEventListener('animationend', onEnd);
   }, [routeKey, direction]);
 
   return (
-    <div className={`${styles.wrapper} ${animClass}`}>
+    <div ref={wrapperRef} className={styles.wrapper}>
       {children}
     </div>
   );

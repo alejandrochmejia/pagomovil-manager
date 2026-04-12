@@ -13,6 +13,10 @@ export function formatCurrencyBs(amount: number): string {
   return `Bs. ${formatCurrency(amount)}`;
 }
 
+export function formatCurrencyUsd(amount: number): string {
+  return `$ ${formatCurrency(amount)}`;
+}
+
 export function formatDate(dateStr: string): string {
   return format(parseISO(dateStr), 'dd/MM/yyyy', { locale: es });
 }
