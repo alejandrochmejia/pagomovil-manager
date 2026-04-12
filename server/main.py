@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import scan, pagos, cuentas
+from routers import scan, pagos, cuentas, stats, metas
 
 app = FastAPI(title="Pago Movil Manager API")
 
@@ -15,6 +15,8 @@ app.add_middleware(
 app.include_router(scan.router)
 app.include_router(pagos.router)
 app.include_router(cuentas.router)
+app.include_router(stats.router)
+app.include_router(metas.router)
 
 
 @app.get("/health")

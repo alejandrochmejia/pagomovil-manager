@@ -1,0 +1,23 @@
+.comparisons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.metaCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.metaLabel {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.chartTitle {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}

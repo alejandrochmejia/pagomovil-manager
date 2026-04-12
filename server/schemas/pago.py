@@ -12,6 +12,10 @@ class PagoCreate(BaseModel):
     concepto: str | None = None
     cuenta_receptora_id: int | None = None
     imagen_uri: str | None = None
+    estado: str = "confirmado"
+    origen: str = "manual"
+    campos_corregidos: list[str] | None = None
+    scan_log_id: int | None = None
 
 
 class PagoUpdate(BaseModel):
@@ -23,3 +27,4 @@ class PagoUpdate(BaseModel):
     hora: str | None = None
     referencia: str | None = None
     concepto: str | None = None
+    estado: str | None = None

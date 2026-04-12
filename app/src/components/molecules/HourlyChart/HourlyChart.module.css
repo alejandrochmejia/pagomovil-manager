@@ -1,0 +1,21 @@
+.card {
+  /* inherits Card styles */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.title {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.peak {
+  font-size: var(--text-xs);
+  color: var(--color-info);
+  font-weight: 600;
+}

@@ -1,0 +1,5 @@
+.chartTitle {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}

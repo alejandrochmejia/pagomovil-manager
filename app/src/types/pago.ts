@@ -12,6 +12,10 @@ export interface Pago {
   concepto?: string;
   cuenta_receptora_id?: number;
   imagen_uri?: string;
+  estado?: string;
+  origen?: string;
+  campos_corregidos?: string[];
+  scan_log_id?: number;
   creado_en?: string;
   actualizado_en?: string;
 }
