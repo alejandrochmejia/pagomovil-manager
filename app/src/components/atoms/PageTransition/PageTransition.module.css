@@ -1,0 +1,33 @@
+.wrapper {
+  will-change: transform, opacity;
+}
+
+.slideFromRight {
+  animation: slideFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.slideFromLeft {
+  animation: slideFromLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes slideFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

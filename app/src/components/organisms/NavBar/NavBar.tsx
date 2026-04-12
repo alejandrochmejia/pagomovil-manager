@@ -7,6 +7,8 @@ import {
   IconUser,
   IconSettings,
 } from '@tabler/icons-react';
+import { useRouteIndex } from '@/hooks/useRouteIndex';
+import NavIndicator from '@/components/atoms/NavIndicator/NavIndicator';
 import styles from './NavBar.module.css';
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
@@ -18,8 +20,11 @@ const tabs: { to: string; label: string; icon: ReactNode }[] = [
 ];
 
 export default function NavBar() {
+  const { index } = useRouteIndex();
+
   return (
     <nav className={styles.nav}>
+      <NavIndicator index={index} total={tabs.length} />
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
