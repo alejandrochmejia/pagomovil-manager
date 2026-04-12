@@ -11,7 +11,7 @@ import styles from './ScanPreview.module.css';
 interface ScanPreviewProps {
   imageBase64: string;
   scanResult: ScanResponse;
-  onConfirm: (data: Omit<Pago, 'id' | 'creadoEn' | 'actualizadoEn'>) => void;
+  onConfirm: (data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) => void;
   onCancel: () => void;
 }
 

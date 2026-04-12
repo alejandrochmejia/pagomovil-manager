@@ -41,15 +41,15 @@ export default function ScanPage() {
     }
   }
 
-  async function handleConfirm(data: Omit<Pago, 'id' | 'creadoEn' | 'actualizadoEn'>) {
+  async function handleConfirm(data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) {
     await createPago({
       ...data,
-      imagenUri: imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : undefined,
+      imagen_uri: imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : undefined,
     });
     navigate('/pagos');
   }
 
-  async function handleManualSubmit(data: Omit<Pago, 'id' | 'creadoEn' | 'actualizadoEn'>) {
+  async function handleManualSubmit(data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) {
     await createPago(data);
     setShowManualForm(false);
     navigate('/pagos');

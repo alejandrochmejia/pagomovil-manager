@@ -1,7 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import { createPago, updatePago, deletePago } from '@/services/pago.service';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { getPagosByDateRange, createPago, updatePago, deletePago } from '@/services/pago.service';
 import { getDefaultDateRange } from '@/services/stats.service';
 import type { Pago } from '@/types/pago';
 import type { DateRange } from '@/types/common';
@@ -22,19 +20,17 @@ export default function PagosPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Pago | undefined>();
   const [deleting, setDeleting] = useState<Pago | undefined>();
+  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [version, setVersion] = useState(0);
 
-  const pagos = useLiveQuery(
-    () =>
-      db.pagos
-        .where('fecha')
-        .between(range.from, range.to, true, true)
-        .reverse()
-        .toArray(),
-    [range.from, range.to],
-  );
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
+
+  useEffect(() => {
+    getPagosByDateRange(range).then(setPagos);
+  }, [range, version]);
 
   const filtered = useMemo(() => {
-    if (!pagos || !search) return pagos;
+    if (!search) return pagos;
     const q = search.toLowerCase();
     return pagos.filter(
       (p) =>
@@ -47,7 +43,7 @@ export default function PagosPage() {
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
 
-  async function handleSubmit(data: Omit<Pago, 'id' | 'creadoEn' | 'actualizadoEn'>) {
+  async function handleSubmit(data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) {
     if (editing?.id) {
       await updatePago(editing.id, data);
     } else {
@@ -55,6 +51,7 @@ export default function PagosPage() {
     }
     setShowForm(false);
     setEditing(undefined);
+    reload();
   }
 
   async function handleDelete() {
@@ -62,6 +59,7 @@ export default function PagosPage() {
       await deletePago(deleting.id);
     }
     setDeleting(undefined);
+    reload();
   }
 
   return (
@@ -77,12 +75,12 @@ export default function PagosPage() {
         <SearchBar
           value={search}
           onChange={handleSearch}
-          placeholder="Buscar por banco, cédula, ref..."
+          placeholder="Buscar por banco, cedula, ref..."
         />
         <DateRangePicker value={range} onChange={setRange} />
       </div>
 
-      {filtered?.length === 0 && (
+      {filtered.length === 0 && (
         <EmptyState
           icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin pagos"
@@ -96,7 +94,7 @@ export default function PagosPage() {
       )}
 
       <div className={styles.list}>
-        {filtered?.map((pago) => (
+        {filtered.map((pago) => (
           <PagoCard
             key={pago.id}
             pago={pago}
@@ -122,7 +120,7 @@ export default function PagosPage() {
         onClose={() => setDeleting(undefined)}
         onConfirm={handleDelete}
         title="Eliminar pago"
-        message={`¿Seguro que deseas eliminar este pago de Bs. ${deleting?.monto}?`}
+        message={`Seguro que deseas eliminar este pago de Bs. ${deleting?.monto}?`}
       />
     </div>
   );

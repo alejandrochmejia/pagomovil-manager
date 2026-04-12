@@ -1,28 +1,29 @@
-import { db } from '@/db/database';
+import { api } from './api';
 import type { CuentaReceptora } from '@/types/pago';
-import { nowISO } from '@/utils/format';
 
 export async function createCuenta(
-  data: Omit<CuentaReceptora, 'id' | 'creadoEn'>,
-): Promise<number> {
-  return db.cuentas.add({ ...data, creadoEn: nowISO() });
+  data: Omit<CuentaReceptora, 'id' | 'creado_en'>,
+): Promise<CuentaReceptora> {
+  return api<CuentaReceptora>('/cuentas', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateCuenta(
   id: number,
-  data: Partial<Omit<CuentaReceptora, 'id' | 'creadoEn'>>,
-): Promise<void> {
-  await db.cuentas.update(id, data);
+  data: Partial<Omit<CuentaReceptora, 'id' | 'creado_en'>>,
+): Promise<CuentaReceptora> {
+  return api<CuentaReceptora>(`/cuentas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteCuenta(id: number): Promise<void> {
-  await db.cuentas.delete(id);
+  await api<void>(`/cuentas/${id}`, { method: 'DELETE' });
 }
 
 export async function getAllCuentas(): Promise<CuentaReceptora[]> {
-  return db.cuentas.toArray();
-}
-
-export async function getActiveCuentas(): Promise<CuentaReceptora[]> {
-  return db.cuentas.filter((c) => c.activa).toArray();
+  return api<CuentaReceptora[]>('/cuentas');
 }

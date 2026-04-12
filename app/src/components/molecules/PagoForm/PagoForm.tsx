@@ -12,7 +12,7 @@ const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
 
 interface PagoFormProps {
   initial?: Partial<Pago>;
-  onSubmit: (data: Omit<Pago, 'id' | 'creadoEn' | 'actualizadoEn'>) => void;
+  onSubmit: (data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) => void;
   onCancel: () => void;
   submitLabel?: string;
 }

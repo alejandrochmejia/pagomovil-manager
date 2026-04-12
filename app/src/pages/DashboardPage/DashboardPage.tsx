@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
 import { getDashboardStats, getDefaultDateRange } from '@/services/stats.service';
 import { useBcvRate } from '@/hooks/useBcvRate';
 import { formatCurrencyBs, formatCurrencyUsd, formatCurrency } from '@/utils/format';
@@ -38,11 +36,13 @@ export default function DashboardPage() {
   const [showUsd, setShowUsd] = useState(false);
   const { rate, loading: rateLoading, error: rateError, refresh: refreshRate } = useBcvRate();
 
-  const pagosCount = useLiveQuery(() => db.pagos.count());
+  const loadStats = useCallback(() => {
+    getDashboardStats(range).then(setStats);
+  }, [range]);
 
   useEffect(() => {
-    getDashboardStats(range).then(setStats);
-  }, [range, pagosCount]);
+    loadStats();
+  }, [loadStats]);
 
   const fmt = useCallback(
     (bs: number) => {
@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
       {stats.pagosPorDia.length > 0 && (
         <Card className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Ingresos por día</h3>
+          <h3 className={styles.chartTitle}>Ingresos por dia</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={stats.pagosPorDia}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />

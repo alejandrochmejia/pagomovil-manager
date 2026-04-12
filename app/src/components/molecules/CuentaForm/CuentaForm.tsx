@@ -11,7 +11,7 @@ const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
 
 interface CuentaFormProps {
   initial?: CuentaReceptora;
-  onSubmit: (data: Omit<CuentaReceptora, 'id' | 'creadoEn'>) => void;
+  onSubmit: (data: Omit<CuentaReceptora, 'id' | 'creado_en'>) => void;
   onCancel: () => void;
 }
 

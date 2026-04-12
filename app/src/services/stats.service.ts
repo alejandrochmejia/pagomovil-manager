@@ -1,4 +1,5 @@
-import { db } from '@/db/database';
+import { api } from './api';
+import type { Pago } from '@/types/pago';
 import type { DateRange, DashboardStats } from '@/types/common';
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 
@@ -8,25 +9,26 @@ export async function getDashboardStats(range: DateRange): Promise<DashboardStat
   const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
   const [pagosHoy, pagosMes, pagosRango] = await Promise.all([
-    db.pagos.where('fecha').equals(today).toArray(),
-    db.pagos.where('fecha').between(monthStart, monthEnd, true, true).toArray(),
-    db.pagos.where('fecha').between(range.from, range.to, true, true).toArray(),
+    api<Pago[]>(`/pagos?desde=${today}&hasta=${today}`),
+    api<Pago[]>(`/pagos?desde=${monthStart}&hasta=${monthEnd}`),
+    api<Pago[]>(`/pagos?desde=${range.from}&hasta=${range.to}`),
   ]);
 
-  const totalHoy = pagosHoy.reduce((sum, p) => sum + p.monto, 0);
-  const totalMes = pagosMes.reduce((sum, p) => sum + p.monto, 0);
+  const totalHoy = pagosHoy.reduce((sum, p) => sum + Number(p.monto), 0);
+  const totalMes = pagosMes.reduce((sum, p) => sum + Number(p.monto), 0);
 
   const pagosPorBancoMap = new Map<string, { total: number; cantidad: number }>();
   const pagosPorDiaMap = new Map<string, { total: number; cantidad: number }>();
 
   for (const pago of pagosRango) {
+    const monto = Number(pago.monto);
     const bancoEntry = pagosPorBancoMap.get(pago.banco) ?? { total: 0, cantidad: 0 };
-    bancoEntry.total += pago.monto;
+    bancoEntry.total += monto;
     bancoEntry.cantidad += 1;
     pagosPorBancoMap.set(pago.banco, bancoEntry);
 
     const diaEntry = pagosPorDiaMap.get(pago.fecha) ?? { total: 0, cantidad: 0 };
-    diaEntry.total += pago.monto;
+    diaEntry.total += monto;
     diaEntry.cantidad += 1;
     pagosPorDiaMap.set(pago.fecha, diaEntry);
   }

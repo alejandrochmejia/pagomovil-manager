@@ -10,10 +10,10 @@ export interface Pago {
   hora?: string;
   referencia: string;
   concepto?: string;
-  cuentaReceptoraId?: number;
-  imagenUri?: string;
-  creadoEn: string;
-  actualizadoEn: string;
+  cuenta_receptora_id?: number;
+  imagen_uri?: string;
+  creado_en?: string;
+  actualizado_en?: string;
 }
 
 export interface CuentaReceptora {
@@ -23,5 +23,5 @@ export interface CuentaReceptora {
   telefono: string;
   cedula: string;
   activa: boolean;
-  creadoEn: string;
+  creado_en?: string;
 }

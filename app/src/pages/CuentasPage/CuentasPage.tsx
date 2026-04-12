@@ -1,7 +1,5 @@
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/database';
-import { createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
+import { useState, useEffect, useCallback } from 'react';
+import { getAllCuentas, createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
 import type { CuentaReceptora } from '@/types/pago';
 import { IconUser } from '@tabler/icons-react';
 import Button from '@/components/atoms/Button/Button';
@@ -13,12 +11,19 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './CuentasPage.module.css';
 
 export default function CuentasPage() {
-  const cuentas = useLiveQuery(() => db.cuentas.toArray());
+  const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CuentaReceptora | undefined>();
   const [deleting, setDeleting] = useState<CuentaReceptora | undefined>();
+  const [version, setVersion] = useState(0);
 
-  async function handleSubmit(data: Omit<CuentaReceptora, 'id' | 'creadoEn'>) {
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
+
+  useEffect(() => {
+    getAllCuentas().then(setCuentas);
+  }, [version]);
+
+  async function handleSubmit(data: Omit<CuentaReceptora, 'id' | 'creado_en'>) {
     if (editing?.id) {
       await updateCuenta(editing.id, data);
     } else {
@@ -26,6 +31,7 @@ export default function CuentasPage() {
     }
     setShowForm(false);
     setEditing(undefined);
+    reload();
   }
 
   async function handleDelete() {
@@ -33,6 +39,7 @@ export default function CuentasPage() {
       await deleteCuenta(deleting.id);
     }
     setDeleting(undefined);
+    reload();
   }
 
   return (
@@ -44,11 +51,11 @@ export default function CuentasPage() {
         </Button>
       </div>
 
-      {cuentas?.length === 0 && (
+      {cuentas.length === 0 && (
         <EmptyState
           icon={<IconUser size={48} stroke={1.5} />}
           title="Sin cuentas"
-          description="Agrega tus cuentas de pago móvil para mostrarlas a tus clientes"
+          description="Agrega tus cuentas de pago movil para mostrarlas a tus clientes"
           action={
             <Button onClick={() => setShowForm(true)}>Agregar cuenta</Button>
           }
@@ -56,7 +63,7 @@ export default function CuentasPage() {
       )}
 
       <div className={styles.list}>
-        {cuentas?.map((cuenta) => (
+        {cuentas.map((cuenta) => (
           <CuentaCard
             key={cuenta.id}
             cuenta={cuenta}
@@ -83,7 +90,7 @@ export default function CuentasPage() {
         onClose={() => setDeleting(undefined)}
         onConfirm={handleDelete}
         title="Eliminar cuenta"
-        message={`¿Seguro que deseas eliminar la cuenta de ${deleting?.nombre}?`}
+        message={`Seguro que deseas eliminar la cuenta de ${deleting?.nombre}?`}
       />
     </div>
   );
