@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/database';
 import { createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
 import type { CuentaReceptora } from '@/types/pago';
+import { IconUser } from '@tabler/icons-react';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
@@ -45,7 +46,7 @@ export default function CuentasPage() {
 
       {cuentas?.length === 0 && (
         <EmptyState
-          icon="👤"
+          icon={<IconUser size={48} stroke={1.5} />}
           title="Sin cuentas"
           description="Agrega tus cuentas de pago móvil para mostrarlas a tus clientes"
           action={

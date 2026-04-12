@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { IconSearch, IconX } from '@tabler/icons-react';
 import styles from './SearchBar.module.css';
 
 interface SearchBarProps {
@@ -29,7 +30,7 @@ export default function SearchBar({
 
   return (
     <div className={styles.wrapper}>
-      <span className={styles.icon}>🔍</span>
+      <span className={styles.icon}><IconSearch size={18} stroke={1.5} /></span>
       <input
         className={styles.input}
         type="text"
@@ -46,7 +47,7 @@ export default function SearchBar({
           }}
           aria-label="Limpiar búsqueda"
         >
-          ✕
+          <IconX size={16} stroke={2} />
         </button>
       )}
     </div>

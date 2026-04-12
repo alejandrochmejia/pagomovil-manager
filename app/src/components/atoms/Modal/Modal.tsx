@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect } from 'react';
+import { IconX } from '@tabler/icons-react';
 import styles from './Modal.module.css';
 
 interface ModalProps {
@@ -27,7 +28,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
         <div className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
           <button className={styles.close} onClick={onClose} aria-label="Cerrar">
-            ✕
+            <IconX size={20} stroke={2} />
           </button>
         </div>
         <div className={styles.body}>{children}</div>

@@ -1,13 +1,21 @@
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
+import {
+  IconChartBar,
+  IconCoin,
+  IconCamera,
+  IconUser,
+  IconSettings,
+} from '@tabler/icons-react';
 import styles from './NavBar.module.css';
 
-const tabs = [
-  { to: '/', label: 'Inicio', icon: '📊' },
-  { to: '/pagos', label: 'Pagos', icon: '💰' },
-  { to: '/scan', label: 'Escanear', icon: '📷' },
-  { to: '/cuentas', label: 'Cuentas', icon: '👤' },
-  { to: '/settings', label: 'Ajustes', icon: '⚙️' },
-] as const;
+const tabs: { to: string; label: string; icon: ReactNode }[] = [
+  { to: '/', label: 'Inicio', icon: <IconChartBar size={22} stroke={1.5} /> },
+  { to: '/pagos', label: 'Pagos', icon: <IconCoin size={22} stroke={1.5} /> },
+  { to: '/scan', label: 'Escanear', icon: <IconCamera size={22} stroke={1.5} /> },
+  { to: '/cuentas', label: 'Cuentas', icon: <IconUser size={22} stroke={1.5} /> },
+  { to: '/settings', label: 'Ajustes', icon: <IconSettings size={22} stroke={1.5} /> },
+];
 
 export default function NavBar() {
   return (

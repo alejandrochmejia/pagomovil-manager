@@ -5,6 +5,7 @@ import { createPago, updatePago, deletePago } from '@/services/pago.service';
 import { getDefaultDateRange } from '@/services/stats.service';
 import type { Pago } from '@/types/pago';
 import type { DateRange } from '@/types/common';
+import { IconCoin } from '@tabler/icons-react';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
@@ -83,7 +84,7 @@ export default function PagosPage() {
 
       {filtered?.length === 0 && (
         <EmptyState
-          icon="💰"
+          icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin pagos"
           description={search ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
           action={
