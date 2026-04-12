@@ -7,14 +7,23 @@ import {
   isImportOlder,
   applyImport,
 } from '@/services/export.service';
+import { useTheme } from '@/hooks/useTheme';
 import { format } from 'date-fns';
+import { IconSun, IconMoon, IconDeviceDesktop } from '@tabler/icons-react';
 import Button from '@/components/atoms/Button/Button';
 import Card from '@/components/atoms/Card/Card';
 import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import type { ExportData } from '@/types/common';
 import styles from './SettingsPage.module.css';
 
+const themeOptions = [
+  { value: 'light' as const, label: 'Claro', icon: IconSun },
+  { value: 'dark' as const, label: 'Oscuro', icon: IconMoon },
+  { value: 'system' as const, label: 'Sistema', icon: IconDeviceDesktop },
+];
+
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [importResult, setImportResult] = useState('');
   const [pendingImport, setPendingImport] = useState<ExportData | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -63,6 +72,23 @@ export default function SettingsPage() {
   return (
     <div className="page">
       <h1>Ajustes</h1>
+
+      <Card className={styles.section}>
+        <h3 className={styles.sectionTitle}>Apariencia</h3>
+        <div className={styles.themeSwitch}>
+          {themeOptions.map((opt) => (
+            <button
+              key={opt.value}
+              className={`${styles.themeOption} ${theme === opt.value ? styles.themeActive : ''}`}
+              onClick={() => setTheme(opt.value)}
+              aria-label={opt.label}
+            >
+              <opt.icon size={18} stroke={1.5} />
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
 
       <Card className={styles.section}>
         <h3 className={styles.sectionTitle}>Datos</h3>
