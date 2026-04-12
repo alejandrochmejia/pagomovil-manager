@@ -1,11 +1,12 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
 import { BANCOS, TIPOS_CEDULA } from '@/utils/constants';
 import { isValidCedula, isValidMonto, isValidReferencia } from '@/utils/validators';
 import { toISODate } from '@/utils/format';
-import type { Pago } from '@/types/pago';
+import { getAllCuentas } from '@/services/cuenta.service';
+import type { Pago, CuentaReceptora } from '@/types/pago';
 import styles from './PagoForm.module.css';
 
 const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
@@ -36,7 +37,13 @@ export default function PagoForm({
   const [fecha, setFecha] = useState(initial?.fecha ?? toISODate(new Date()));
   const [hora, setHora] = useState(initial?.hora ?? '');
   const [concepto, setConcepto] = useState(initial?.concepto ?? '');
+  const [cuentaId, setCuentaId] = useState(initial?.cuenta_receptora_id?.toString() ?? '');
+  const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getAllCuentas().then(setCuentas);
+  }, []);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -62,6 +69,7 @@ export default function PagoForm({
       fecha,
       hora: hora || undefined,
       concepto: concepto || undefined,
+      cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
     });
   }
 
@@ -132,11 +140,23 @@ export default function PagoForm({
           onChange={(e) => setHora(e.target.value)}
         />
       </div>
+      {cuentas.length > 0 && (
+        <Select
+          label="Cuenta receptora (opcional)"
+          options={cuentas.map((c) => ({
+            value: String(c.id),
+            label: `${c.nombre} - ${c.banco}`,
+          }))}
+          value={cuentaId}
+          onChange={(e) => setCuentaId(e.target.value)}
+          placeholder="Sin cuenta asociada"
+        />
+      )}
       <Input
         label="Concepto (opcional)"
         value={concepto}
         onChange={(e) => setConcepto(e.target.value)}
-        placeholder="Descripción del pago"
+        placeholder="Descripcion del pago"
       />
       <div className={styles.actions}>
         <Button variant="secondary" type="button" onClick={onCancel}>

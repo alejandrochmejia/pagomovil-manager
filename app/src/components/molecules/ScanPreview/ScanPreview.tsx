@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { IconZoomIn } from '@tabler/icons-react';
 import type { ScanResponse } from '@/types/common';
-import type { Pago } from '@/types/pago';
+import type { Pago, CuentaReceptora } from '@/types/pago';
 import { formatCurrencyBs, toISODate } from '@/utils/format';
+import { getAllCuentas } from '@/services/cuenta.service';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
+import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
 import styles from './ScanPreview.module.css';
 
@@ -27,7 +29,13 @@ export default function ScanPreview({
   const [fecha, setFecha] = useState(scanResult.fecha ?? toISODate(new Date()));
   const [hora, setHora] = useState(scanResult.hora ?? '');
   const [concepto, setConcepto] = useState(scanResult.concepto ?? '');
+  const [cuentaId, setCuentaId] = useState('');
+  const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getAllCuentas().then(setCuentas);
+  }, []);
 
   const hasComision = !!scanResult.comision && scanResult.comision > 0;
   const imageSrc = `data:image/jpeg;base64,${imageBase64}`;
@@ -51,6 +59,7 @@ export default function ScanPreview({
       fecha,
       hora: hora || undefined,
       concepto: concepto || undefined,
+      cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
     });
   }
 
@@ -129,6 +138,18 @@ export default function ScanPreview({
             onChange={(e) => setHora(e.target.value)}
           />
         </div>
+        {cuentas.length > 0 && (
+          <Select
+            label="Cuenta receptora (opcional)"
+            options={cuentas.map((c) => ({
+              value: String(c.id),
+              label: `${c.nombre} - ${c.banco}`,
+            }))}
+            value={cuentaId}
+            onChange={(e) => setCuentaId(e.target.value)}
+            placeholder="Sin cuenta asociada"
+          />
+        )}
         <Input
           label="Concepto (opcional)"
           value={concepto}
