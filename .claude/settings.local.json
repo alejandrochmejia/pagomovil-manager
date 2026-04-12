@@ -5,7 +5,8 @@
       "Bash(npx cap:*)",
       "Bash(mkdir:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "WebFetch(domain:ai.google.dev)"
     ]
   }
 }

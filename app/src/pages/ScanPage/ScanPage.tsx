@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { captureReceipt } from '@/services/camera.service';
-import { scanReceipt, isWebhookConfigured } from '@/services/n8n.service';
+import { scanReceipt, isScanConfigured } from '@/services/scan.service';
 import { createPago } from '@/services/pago.service';
-import type { N8nScanResponse } from '@/types/common';
+import type { ScanResponse } from '@/types/common';
 import type { Pago } from '@/types/pago';
 import { IconCamera, IconPencil, IconAlertTriangle } from '@tabler/icons-react';
 import Button from '@/components/atoms/Button/Button';
@@ -19,11 +19,11 @@ export default function ScanPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<ScanState>('idle');
   const [imageBase64, setImageBase64] = useState('');
-  const [scanResult, setScanResult] = useState<N8nScanResponse | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResponse | null>(null);
   const [error, setError] = useState('');
   const [showManualForm, setShowManualForm] = useState(false);
 
-  const webhookConfigured = isWebhookConfigured();
+  const scanConfigured = isScanConfigured();
 
   async function handleScan() {
     try {
@@ -66,19 +66,19 @@ export default function ScanPage() {
     <div className="page">
       <h1>Registrar pago</h1>
 
-      {!webhookConfigured && state === 'idle' && (
+      {!scanConfigured && state === 'idle' && (
         <div className={styles.warning}>
-          Configura la URL del webhook en Ajustes para poder escanear comprobantes.
+          Configura la URL del servidor de escaneo (VITE_SCAN_API_URL) en el archivo .env
         </div>
       )}
 
       {state === 'idle' && (
         <div className={styles.options}>
-          <button className={styles.optionCard} onClick={handleScan} disabled={!webhookConfigured}>
+          <button className={styles.optionCard} onClick={handleScan} disabled={!scanConfigured}>
             <span className={styles.optionIcon}><IconCamera size={32} stroke={1.5} /></span>
             <span className={styles.optionTitle}>Escanear comprobante</span>
             <span className={styles.optionDesc}>
-              Toma una foto y la IA extrae los datos automáticamente
+              Toma una foto y la IA extrae los datos automaticamente
             </span>
           </button>
 
@@ -86,7 +86,7 @@ export default function ScanPage() {
             <span className={styles.optionIcon}><IconPencil size={32} stroke={1.5} /></span>
             <span className={styles.optionTitle}>Registro manual</span>
             <span className={styles.optionDesc}>
-              Ingresa los datos del pago móvil manualmente
+              Ingresa los datos del pago movil manualmente
             </span>
           </button>
         </div>

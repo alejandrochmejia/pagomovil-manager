@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-All application code lives under `app/`. The root of the repo is otherwise empty.
+- `app/` — frontend React + Capacitor
+- `server/` — backend Python (FastAPI + Gemini AI) for receipt scanning
 
 ## Commands
 
-All commands must be run from the `app/` directory.
+### Frontend (from `app/`)
 
 ```bash
 pnpm install          # Install dependencies
@@ -17,6 +18,13 @@ pnpm build            # Type-check + build for production (outputs to app/dist/)
 pnpm lint             # Lint TypeScript/TSX files
 pnpm preview          # Preview production build locally
 npx cap sync          # Sync web build to native Android project (requires dist/)
+```
+
+### Backend (from `server/`)
+
+```bash
+pip install -r requirements.txt   # Install Python dependencies
+uvicorn main:app --reload         # Start dev server on :8000
 ```
 
 ## Stack
@@ -31,6 +39,12 @@ npx cap sync          # Sync web build to native Android project (requires dist/
 - **CSS Modules** — scoped styles, co-located `.module.css` files
 - **ESLint 9** — flat config in `app/eslint.config.js`
 - **pnpm** — package manager
+- **@tabler/icons-react** — icon library (SVG icons, no emojis)
+
+### Backend
+- **Python 3.12+** + **FastAPI** — API server for receipt scanning
+- **httpx** — async HTTP client for OpenRouter API (Gemini 2.0 Flash vision)
+- **Pillow** — image processing
 
 ## Architecture
 
@@ -45,11 +59,18 @@ npx cap sync          # Sync web build to native Android project (requires dist/
 - `pago.service.ts` — CRUD for payments
 - `cuenta.service.ts` — CRUD for receiver accounts
 - `camera.service.ts` — Capacitor Camera wrapper
-- `n8n.service.ts` — webhook integration for AI receipt scanning
+- `scan.service.ts` — calls Python backend for OCR + Gemini receipt scanning
+- `bcv.service.ts` — fetches BCV dollar rate from dolarapi.com, caches in localStorage
 - `stats.service.ts` — dashboard statistics aggregation
 - `export.service.ts` — JSON export/import with date comparison
+- `n8n.service.ts` — (legacy) webhook integration, replaced by scan.service.ts
 
-**Data layer** — Dexie `useLiveQuery` provides reactive data from IndexedDB; no global state manager needed. UI state is local `useState`; the only `localStorage` key is `pagomovil_last_export` (import date tracking).
+**Hooks** (`src/hooks/`) — reusable stateful logic:
+- `useTheme.ts` — dark/light/system theme with localStorage persistence
+- `useBcvRate.ts` — reactive BCV dollar rate with refresh
+- `useRouteIndex.ts` — active route index + navigation direction
+
+**Data layer** — Dexie `useLiveQuery` provides reactive data from IndexedDB; no global state manager needed. UI state is local `useState`; localStorage keys: `pagomovil_last_export` (import tracking), `pagomovil_theme` (appearance), `pagomovil_bcv_rate` (cached BCV rate).
 
 **Path alias** — `@/` maps to `src/` (configured in `vite.config.ts` and `tsconfig.app.json`)
 
@@ -58,18 +79,21 @@ npx cap sync          # Sync web build to native Android project (requires dist/
 Defined in `src/types/`:
 - `Pago` — payment record (monto, banco, cedula, referencia, fecha...)
 - `CuentaReceptora` — receiver account (nombre, banco, telefono, cedula)
-- `DateRange`, `ExportData`, `DashboardStats`, `N8nScanResponse`
+- `DateRange`, `ExportData`, `DashboardStats`, `ScanResponse`, `N8nScanResponse` (legacy)
 
 ## Environment Variables
 
-The n8n webhook URL is a **build-time** env var — it is not user-configurable at runtime.
-
-Create `app/.env` (gitignored):
+### Frontend — `app/.env` (gitignored, build-time)
 ```
-VITE_N8N_WEBHOOK_URL=https://tu-n8n.com/webhook/tu-endpoint
+VITE_SCAN_API_URL=http://localhost:8000
 ```
+Read via `import.meta.env.VITE_SCAN_API_URL` in `src/services/scan.service.ts`.
 
-Reference: `app/.env.example`. In code, read via `import.meta.env.VITE_N8N_WEBHOOK_URL` — only in `src/services/n8n.service.ts`. Never add a UI field for this value.
+### Backend — `server/.env` (gitignored)
+```
+OPENROUTER_API_KEY=tu-api-key-aqui
+```
+Get a free key at https://openrouter.ai/keys
 
 ## Capacitor / Android
 

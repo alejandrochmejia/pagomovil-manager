@@ -32,3 +32,16 @@ export interface N8nScanResponse {
   referencia?: string;
   concepto?: string;
 }
+
+export interface ScanResponse {
+  monto: number | null;
+  comision: number | null;
+  montoTotal: number | null;
+  banco: string | null;
+  cedula: string | null;
+  telefono: string | null;
+  fecha: string | null;
+  hora: string | null;
+  referencia: string | null;
+  concepto: string | null;
+}
