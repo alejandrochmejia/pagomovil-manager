@@ -79,7 +79,7 @@ export default function ScanPage() {
             <span className={styles.optionIcon}><IconCamera size={32} stroke={1.5} /></span>
             <span className={styles.optionTitle}>Escanear comprobante</span>
             <span className={styles.optionDesc}>
-              Toma una foto y la IA extrae los datos automaticamente
+              Toma una foto y la IA extrae los datos automáticamente
             </span>
           </button>
 
@@ -87,7 +87,7 @@ export default function ScanPage() {
             <span className={styles.optionIcon}><IconPencil size={32} stroke={1.5} /></span>
             <span className={styles.optionTitle}>Registro manual</span>
             <span className={styles.optionDesc}>
-              Ingresa los datos del pago movil manualmente
+              Ingresa los datos del pago móvil manualmente
             </span>
           </button>
         </div>

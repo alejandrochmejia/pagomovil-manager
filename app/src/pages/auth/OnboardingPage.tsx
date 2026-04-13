@@ -50,7 +50,7 @@ export default function OnboardingPage() {
           <div className={styles.successIcon}>
             <IconBuilding size={28} stroke={1.5} />
           </div>
-          <span className={styles.brandName}>Un paso mas</span>
+          <span className={styles.brandName}>Un paso más</span>
           <span className={styles.brandSub}>
             Hola {user?.nombre || user?.email}, crea tu primera empresa para comenzar
           </span>
@@ -87,7 +87,7 @@ export default function OnboardingPage() {
             <Button type="button" variant="danger" onClick={logout}>
               <span className={styles.btnContent}>
                 <IconLogout size={16} stroke={1.5} />
-                Cerrar sesion
+                Cerrar sesión
               </span>
             </Button>
           </form>

@@ -40,9 +40,15 @@
   white-space: nowrap;
 }
 
-.actions {
+.right {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   flex-shrink: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
 }

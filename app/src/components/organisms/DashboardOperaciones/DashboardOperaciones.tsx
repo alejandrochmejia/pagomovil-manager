@@ -17,7 +17,7 @@ export default function DashboardOperaciones({
   return (
     <KpiSection
       title="KPIs Operativos"
-      subtitle="Que tan bien opera el proceso?"
+      subtitle="¿Qué tan bien opera el proceso?"
       icon={<IconSettings size={20} stroke={1.5} />}
     >
       <div className={styles.grid}>
@@ -48,7 +48,7 @@ export default function DashboardOperaciones({
             variant={scanStats.tiempo_promedio_ms > 10000 ? 'warning' : 'info'}
           />
           <AlertCard
-            title="Correccion manual"
+            title="Corrección manual"
             value={`${scanStats.tasa_correccion}%`}
             description="Campos corregidos post-OCR"
             variant={scanStats.tasa_correccion > 30 ? 'warning' : 'success'}

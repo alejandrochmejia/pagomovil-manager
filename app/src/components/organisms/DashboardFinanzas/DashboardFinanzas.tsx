@@ -43,7 +43,7 @@ export default function DashboardFinanzas({
   return (
     <KpiSection
       title="KPIs Financieros"
-      subtitle="Como esta el dinero?"
+      subtitle="¿Cómo está el dinero?"
       icon={<IconCurrencyDollar size={20} stroke={1.5} />}
     >
       <div className={styles.comparisons}>
@@ -81,7 +81,7 @@ export default function DashboardFinanzas({
 
       {breakdownDia.length > 0 && (
         <Card>
-          <h3 className={styles.chartTitle}>Ingresos por dia</h3>
+          <h3 className={styles.chartTitle}>Ingresos por día</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={breakdownDia.map((d) => ({ fecha: d.grupo, total: d.total }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />

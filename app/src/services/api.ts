@@ -31,7 +31,7 @@ export async function api<T>(
   }
 
   if (res.status === 401) {
-    throw new Error('Sesion expirada');
+    throw new Error('Sesión expirada');
   }
 
   if (!res.ok) {

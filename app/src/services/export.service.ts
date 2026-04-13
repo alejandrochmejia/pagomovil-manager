@@ -36,7 +36,7 @@ export function downloadJson(jsonStr: string, filename: string): void {
 export function parseImportData(jsonStr: string): ExportData {
   const data = JSON.parse(jsonStr);
   if (!data.version || !Array.isArray(data.pagos) || !Array.isArray(data.cuentas)) {
-    throw new Error('Formato de archivo invalido');
+    throw new Error('Formato de archivo inválido');
   }
   return data as ExportData;
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAllCuentas, createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { CuentaReceptora } from '@/types/pago';
 import { IconUser } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
@@ -12,6 +13,7 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './CuentasPage.module.css';
 
 export default function CuentasPage() {
+  const perms = usePermissions();
   const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CuentaReceptora | undefined>();
@@ -48,9 +50,11 @@ export default function CuentasPage() {
       <AppHeader
         title="Cuentas"
         actions={
-          <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
-            + Nueva
-          </Button>
+          perms.canManageCuentas ? (
+            <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
+              + Nueva
+            </Button>
+          ) : undefined
         }
       />
 
@@ -58,9 +62,11 @@ export default function CuentasPage() {
         <EmptyState
           icon={<IconUser size={48} stroke={1.5} />}
           title="Sin cuentas"
-          description="Agrega tus cuentas de pago movil para mostrarlas a tus clientes"
+          description="Agrega tus cuentas de pago móvil para mostrarlas a tus clientes"
           action={
-            <Button onClick={() => setShowForm(true)}>Agregar cuenta</Button>
+            perms.canManageCuentas ? (
+              <Button onClick={() => setShowForm(true)}>Agregar cuenta</Button>
+            ) : undefined
           }
         />
       )}
@@ -70,31 +76,35 @@ export default function CuentasPage() {
           <CuentaCard
             key={cuenta.id}
             cuenta={cuenta}
-            onEdit={() => { setEditing(cuenta); setShowForm(true); }}
-            onDelete={() => setDeleting(cuenta)}
+            onEdit={perms.canManageCuentas ? () => { setEditing(cuenta); setShowForm(true); } : undefined}
+            onDelete={perms.canManageCuentas ? () => setDeleting(cuenta) : undefined}
           />
         ))}
       </div>
 
-      <Modal
-        isOpen={showForm}
-        onClose={() => { setShowForm(false); setEditing(undefined); }}
-        title={editing ? 'Editar cuenta' : 'Nueva cuenta'}
-      >
-        <CuentaForm
-          initial={editing}
-          onSubmit={handleSubmit}
-          onCancel={() => { setShowForm(false); setEditing(undefined); }}
-        />
-      </Modal>
+      {perms.canManageCuentas && (
+        <>
+          <Modal
+            isOpen={showForm}
+            onClose={() => { setShowForm(false); setEditing(undefined); }}
+            title={editing ? 'Editar cuenta' : 'Nueva cuenta'}
+          >
+            <CuentaForm
+              initial={editing}
+              onSubmit={handleSubmit}
+              onCancel={() => { setShowForm(false); setEditing(undefined); }}
+            />
+          </Modal>
 
-      <ConfirmDialog
-        isOpen={!!deleting}
-        onClose={() => setDeleting(undefined)}
-        onConfirm={handleDelete}
-        title="Eliminar cuenta"
-        message={`Seguro que deseas eliminar la cuenta de ${deleting?.nombre}?`}
-      />
+          <ConfirmDialog
+            isOpen={!!deleting}
+            onClose={() => setDeleting(undefined)}
+            onConfirm={handleDelete}
+            title="Eliminar cuenta"
+            message={`Seguro que deseas eliminar la cuenta de ${deleting?.nombre}?`}
+          />
+        </>
+      )}
     </div>
   );
 }

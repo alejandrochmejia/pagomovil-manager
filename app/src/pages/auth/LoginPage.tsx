@@ -35,7 +35,7 @@ export default function LoginPage() {
   return (
     <Card className={styles.card}>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <h2 className={styles.formTitle}>Iniciar sesion</h2>
+        <h2 className={styles.formTitle}>Iniciar sesión</h2>
         <p className={styles.formSubtitle}>Ingresa a tu cuenta para continuar</p>
 
         {error && (
@@ -54,11 +54,11 @@ export default function LoginPage() {
           autoComplete="email"
         />
         <Input
-          label="Contrasena"
+          label="Contraseña"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Tu contrasena"
+          placeholder="Tu contraseña"
           autoComplete="current-password"
         />
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
         </Button>
 
         <Link to="/forgot-password" className={styles.link}>
-          Olvide mi contrasena
+          Olvidé mi contraseña
         </Link>
 
         <div className={styles.divider}>o</div>

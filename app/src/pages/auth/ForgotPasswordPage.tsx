@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
           </div>
           <h2 className={styles.successTitle}>Email enviado</h2>
           <p className={styles.successDesc}>
-            Enviamos un enlace de recuperacion a <strong>{email}</strong>. Revisa tu bandeja de entrada y carpeta de spam.
+            Enviamos un enlace de recuperación a <strong>{email}</strong>. Revisa tu bandeja de entrada y carpeta de spam.
           </p>
           <Link to="/login" className={styles.link}>
             <span className={styles.btnContent}>
@@ -57,8 +57,8 @@ export default function ForgotPasswordPage() {
   return (
     <Card className={styles.card}>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <h2 className={styles.formTitle}>Recuperar contrasena</h2>
-        <p className={styles.formSubtitle}>Te enviaremos un enlace para restablecer tu contrasena</p>
+        <h2 className={styles.formTitle}>Recuperar contraseña</h2>
+        <p className={styles.formSubtitle}>Te enviaremos un enlace para restablecer tu contraseña</p>
 
         {error && (
           <div className={`${styles.alert} ${styles.alertError}`}>

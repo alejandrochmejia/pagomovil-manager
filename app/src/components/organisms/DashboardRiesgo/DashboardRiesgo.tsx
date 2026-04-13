@@ -12,7 +12,7 @@ export default function DashboardRiesgo({ summary }: DashboardRiesgoProps) {
   return (
     <KpiSection
       title="Riesgo y Control"
-      subtitle="Que tan expuesto estas?"
+      subtitle="¿Qué tan expuesto estás?"
       icon={<IconShieldCheck size={20} stroke={1.5} />}
     >
       <div className={styles.grid}>

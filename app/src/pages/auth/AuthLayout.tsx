@@ -26,8 +26,8 @@ export default function AuthLayout() {
           <div className={styles.brandIcon}>
             <IconCreditCardPay size={28} stroke={1.5} />
           </div>
-          <span className={styles.brandName}>Pago Movil Manager</span>
-          <span className={styles.brandSub}>Gestiona tus pagos moviles</span>
+          <span className={styles.brandName}>Pago Móvil Manager</span>
+          <span className={styles.brandSub}>Gestiona tus pagos móviles</span>
         </div>
         <Outlet />
       </div>

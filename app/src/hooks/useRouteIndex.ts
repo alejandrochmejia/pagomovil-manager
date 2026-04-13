@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const ROUTES = ['/', '/pagos', '/scan', '/cuentas', '/settings'];
-
-export function useRouteIndex() {
+export function useRouteIndex(routes: string[]) {
   const { pathname } = useLocation();
-  const raw = ROUTES.indexOf(pathname);
+  const raw = routes.indexOf(pathname);
   const current = raw === -1 ? 0 : raw;
 
   const [indices, setIndices] = useState({ prev: current, current });

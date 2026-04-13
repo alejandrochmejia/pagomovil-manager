@@ -29,7 +29,7 @@ export default function RegisterPage() {
       return;
     }
     if (password.length < 6) {
-      setError('La contrasena debe tener al menos 6 caracteres');
+      setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     setLoading(true);
@@ -46,7 +46,7 @@ export default function RegisterPage() {
     <Card className={styles.card}>
       <form className={styles.form} onSubmit={handleSubmit}>
         <h2 className={styles.formTitle}>Crear cuenta</h2>
-        <p className={styles.formSubtitle}>Registrate para gestionar tus pagos</p>
+        <p className={styles.formSubtitle}>Regístrate para gestionar tus pagos</p>
 
         {error && (
           <div className={`${styles.alert} ${styles.alertError}`}>
@@ -71,11 +71,11 @@ export default function RegisterPage() {
           autoComplete="email"
         />
         <Input
-          label="Contrasena"
+          label="Contraseña"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Minimo 6 caracteres"
+          placeholder="Mínimo 6 caracteres"
           autoComplete="new-password"
         />
 

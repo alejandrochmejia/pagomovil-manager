@@ -7,7 +7,7 @@ import './App.css';
 
 export default function App() {
   const { pathname } = useLocation();
-  const { direction } = useRouteIndex();
+  const { direction } = useRouteIndex(['/', '/pagos', '/scan', '/cuentas', '/settings']);
 
   return (
     <ProtectedRoute>

@@ -156,7 +156,7 @@ export default function PagoForm({
         label="Concepto (opcional)"
         value={concepto}
         onChange={(e) => setConcepto(e.target.value)}
-        placeholder="Descripcion del pago"
+        placeholder="Descripción del pago"
       />
       <div className={styles.actions}>
         <Button variant="secondary" type="button" onClick={onCancel}>

@@ -6,8 +6,8 @@ import styles from './CuentaCard.module.css';
 
 interface CuentaCardProps {
   cuenta: CuentaReceptora;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export default function CuentaCard({ cuenta, onEdit, onDelete }: CuentaCardProps) {
@@ -33,14 +33,20 @@ export default function CuentaCard({ cuenta, onEdit, onDelete }: CuentaCardProps
           <span>{cuenta.telefono}</span>
         </div>
       </div>
-      <div className={styles.actions}>
-        <Button variant="ghost" size="sm" onClick={onEdit}>
-          Editar
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onDelete}>
-          Eliminar
-        </Button>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className={styles.actions}>
+          {onEdit && (
+            <Button variant="ghost" size="sm" onClick={onEdit}>
+              Editar
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="ghost" size="sm" onClick={onDelete}>
+              Eliminar
+            </Button>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

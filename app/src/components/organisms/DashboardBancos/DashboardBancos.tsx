@@ -38,14 +38,14 @@ export default function DashboardBancos({
   return (
     <KpiSection
       title="KPIs por Banco"
-      subtitle="Por donde te pagan?"
+      subtitle="¿Por dónde te pagan?"
       icon={<IconBuildingBank size={20} stroke={1.5} />}
     >
       <DateRangePicker value={range} onChange={onRangeChange} />
 
       {pieData.length > 0 && (
         <Card>
-          <h3 className={styles.chartTitle}>Distribucion por banco</h3>
+          <h3 className={styles.chartTitle}>Distribución por banco</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie

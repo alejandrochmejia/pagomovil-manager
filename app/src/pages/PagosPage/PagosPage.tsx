@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getPagosByDateRange, createPago, updatePago, deletePago } from '@/services/pago.service';
 import { getDefaultDateRange } from '@/services/stats.service';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { Pago } from '@/types/pago';
 import type { DateRange } from '@/types/common';
 import { IconCoin } from '@tabler/icons-react';
@@ -16,6 +17,7 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './PagosPage.module.css';
 
 export default function PagosPage() {
+  const perms = usePermissions();
   const [range, setRange] = useState<DateRange>(getDefaultDateRange);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -68,9 +70,11 @@ export default function PagosPage() {
       <AppHeader
         title="Pagos"
         actions={
-          <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
-            + Nuevo
-          </Button>
+          perms.canCreatePago ? (
+            <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
+              + Nuevo
+            </Button>
+          ) : undefined
         }
       />
 
@@ -80,7 +84,9 @@ export default function PagosPage() {
           onChange={handleSearch}
           placeholder="Buscar por banco, cedula, ref..."
         />
-        <DateRangePicker value={range} onChange={setRange} />
+        {perms.pagosMaxDays === null && (
+          <DateRangePicker value={range} onChange={setRange} />
+        )}
       </div>
 
       {filtered.length === 0 && (
@@ -89,7 +95,7 @@ export default function PagosPage() {
           title="Sin pagos"
           description={search ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
           action={
-            !search ? (
+            !search && perms.canCreatePago ? (
               <Button onClick={() => setShowForm(true)}>Registrar pago</Button>
             ) : undefined
           }
@@ -101,30 +107,34 @@ export default function PagosPage() {
           <PagoCard
             key={pago.id}
             pago={pago}
-            onClick={() => { setEditing(pago); setShowForm(true); }}
+            onClick={perms.canEditPago ? () => { setEditing(pago); setShowForm(true); } : undefined}
           />
         ))}
       </div>
 
-      <Modal
-        isOpen={showForm}
-        onClose={() => { setShowForm(false); setEditing(undefined); }}
-        title={editing ? 'Editar pago' : 'Nuevo pago'}
-      >
-        <PagoForm
-          initial={editing}
-          onSubmit={handleSubmit}
-          onCancel={() => { setShowForm(false); setEditing(undefined); }}
-        />
-      </Modal>
+      {perms.canCreatePago && (
+        <Modal
+          isOpen={showForm}
+          onClose={() => { setShowForm(false); setEditing(undefined); }}
+          title={editing ? 'Editar pago' : 'Nuevo pago'}
+        >
+          <PagoForm
+            initial={editing}
+            onSubmit={handleSubmit}
+            onCancel={() => { setShowForm(false); setEditing(undefined); }}
+          />
+        </Modal>
+      )}
 
-      <ConfirmDialog
-        isOpen={!!deleting}
-        onClose={() => setDeleting(undefined)}
-        onConfirm={handleDelete}
-        title="Eliminar pago"
-        message={`Seguro que deseas eliminar este pago de Bs. ${deleting?.monto}?`}
-      />
+      {perms.canDeletePago && (
+        <ConfirmDialog
+          isOpen={!!deleting}
+          onClose={() => setDeleting(undefined)}
+          onConfirm={handleDelete}
+          title="Eliminar pago"
+          message={`Seguro que deseas eliminar este pago de Bs. ${deleting?.monto}?`}
+        />
+      )}
     </div>
   );
 }

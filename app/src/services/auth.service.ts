@@ -52,7 +52,7 @@ export async function getMe(token: string): Promise<{ user: AuthUser; empresas: 
   const res = await fetch(`${BASE_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error('Sesion invalida');
+  if (!res.ok) throw new Error('Sesión inválida');
   return res.json();
 }
 

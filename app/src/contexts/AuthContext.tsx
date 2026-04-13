@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!token) {
-      throw new Error('No se pudo iniciar sesion automaticamente');
+      throw new Error('No se pudo iniciar sesión automáticamente');
     }
 
     saveSession({ access_token: token, refresh_token: '' });

@@ -59,6 +59,24 @@
   color: var(--color-text-muted);
 }
 
+.rolSelect {
+  padding: 4px var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lockedBadge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-text-muted);
+}
+
 .removeBtn {
   display: flex;
   align-items: center;

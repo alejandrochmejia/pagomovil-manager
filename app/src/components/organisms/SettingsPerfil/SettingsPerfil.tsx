@@ -18,10 +18,10 @@ export default function SettingsPerfil() {
       </Card>
 
       <Card className={styles.section}>
-        <h3 className={styles.sectionTitle}>Sesion</h3>
+        <h3 className={styles.sectionTitle}>Sesión</h3>
         <Button variant="danger" onClick={logout}>
           <IconLogout size={16} stroke={1.5} />
-          Cerrar sesion
+          Cerrar sesión
         </Button>
       </Card>
     </div>

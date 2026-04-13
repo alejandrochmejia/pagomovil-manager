@@ -44,7 +44,7 @@ export default function ScanPreview({
     ev.preventDefault();
     const e: Record<string, string> = {};
     const montoNum = Number(monto);
-    if (!monto || isNaN(montoNum) || montoNum <= 0) e.monto = 'Monto invalido';
+    if (!monto || isNaN(montoNum) || montoNum <= 0) e.monto = 'Monto inválido';
     if (!referencia.trim()) e.referencia = 'Referencia requerida';
     if (!fecha) e.fecha = 'Fecha requerida';
     setErrors(e);
@@ -92,7 +92,7 @@ export default function ScanPreview({
             <span>{formatCurrencyBs(scanResult.montoTotal ?? 0)}</span>
           </div>
           <div className={styles.comisionRow}>
-            <span>Comision del banco</span>
+            <span>Comisión del banco</span>
             <span className={styles.comisionAmount}>
               - {formatCurrencyBs(scanResult.comision!)}
             </span>
@@ -107,7 +107,7 @@ export default function ScanPreview({
       <form className={styles.form} onSubmit={handleSubmit}>
         <h3 className={styles.title}>Verifica los datos</h3>
         <Input
-          label="Monto (sin comision)"
+          label="Monto (sin comisión)"
           type="number"
           value={monto}
           onChange={(e) => setMonto(e.target.value)}
@@ -154,7 +154,7 @@ export default function ScanPreview({
           label="Concepto (opcional)"
           value={concepto}
           onChange={(e) => setConcepto(e.target.value)}
-          placeholder="Descripcion del pago"
+          placeholder="Descripción del pago"
         />
         <div className={styles.actions}>
           <Button variant="secondary" type="button" onClick={onCancel}>

@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useBcvRate } from '@/hooks/useBcvRate';
+import { usePermissions } from '@/hooks/usePermissions';
 import { formatCurrencyBs, formatCurrencyUsd, formatCurrency } from '@/utils/format';
 import type { KpiSection } from '@/types/common';
 import {
@@ -21,15 +22,23 @@ import DashboardOperaciones from '@/components/organisms/DashboardOperaciones/Da
 import DashboardRiesgo from '@/components/organisms/DashboardRiesgo/DashboardRiesgo';
 import styles from './DashboardPage.module.css';
 
-const TABS: { key: KpiSection; label: string; icon: React.ReactNode }[] = [
-  { key: 'resumen', label: 'Resumen', icon: <IconHome size={16} stroke={1.5} /> },
-  { key: 'finanzas', label: 'Finanzas', icon: <IconCurrencyDollar size={16} stroke={1.5} /> },
-  { key: 'bancos', label: 'Bancos', icon: <IconBuildingBank size={16} stroke={1.5} /> },
-  { key: 'operaciones', label: 'Operaciones', icon: <IconSettings size={16} stroke={1.5} /> },
-  { key: 'riesgo', label: 'Riesgo', icon: <IconShieldCheck size={16} stroke={1.5} /> },
+const ALL_TABS: { key: KpiSection; label: string; icon: React.ReactNode; needs: 'any' | 'full' | 'basic' }[] = [
+  { key: 'resumen', label: 'Resumen', icon: <IconHome size={16} stroke={1.5} />, needs: 'any' },
+  { key: 'finanzas', label: 'Finanzas', icon: <IconCurrencyDollar size={16} stroke={1.5} />, needs: 'full' },
+  { key: 'bancos', label: 'Bancos', icon: <IconBuildingBank size={16} stroke={1.5} />, needs: 'full' },
+  { key: 'operaciones', label: 'Operaciones', icon: <IconSettings size={16} stroke={1.5} />, needs: 'full' },
+  { key: 'riesgo', label: 'Riesgo', icon: <IconShieldCheck size={16} stroke={1.5} />, needs: 'full' },
 ];
 
 export default function DashboardPage() {
+  const perms = usePermissions();
+  const tabs = useMemo(() => ALL_TABS.filter((t) => {
+    if (t.needs === 'any') return true;
+    if (t.needs === 'full') return perms.canSeeFullDashboard;
+    if (t.needs === 'basic') return perms.canSeeBasicKpis;
+    return false;
+  }), [perms.canSeeFullDashboard, perms.canSeeBasicKpis]);
+
   const [section, setSection] = useState<KpiSection>('resumen');
   const [showUsd, setShowUsd] = useState(false);
 
@@ -90,7 +99,7 @@ export default function DashboardPage() {
       />
 
       <SectionTabs
-        tabs={TABS}
+        tabs={tabs}
         active={section}
         onChange={(k) => setSection(k as KpiSection)}
       />
