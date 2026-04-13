@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAllCuentas, createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
 import type { CuentaReceptora } from '@/types/pago';
 import { IconUser } from '@tabler/icons-react';
+import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
@@ -44,12 +45,14 @@ export default function CuentasPage() {
 
   return (
     <div className="page">
-      <div className={styles.header}>
-        <h1>Cuentas Receptoras</h1>
-        <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
-          + Nueva
-        </Button>
-      </div>
+      <AppHeader
+        title="Cuentas"
+        actions={
+          <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
+            + Nueva
+          </Button>
+        }
+      />
 
       {cuentas.length === 0 && (
         <EmptyState

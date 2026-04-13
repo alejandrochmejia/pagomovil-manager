@@ -11,6 +11,7 @@ import {
   IconShieldCheck,
   IconArrowsExchange,
 } from '@tabler/icons-react';
+import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import SectionTabs from '@/components/atoms/SectionTabs/SectionTabs';
 import Spinner from '@/components/atoms/Spinner/Spinner';
 import DashboardResumen from '@/components/organisms/DashboardResumen/DashboardResumen';
@@ -64,7 +65,7 @@ export default function DashboardPage() {
   if (loading && !summary) {
     return (
       <div className="page">
-        <h1>Dashboard</h1>
+        <AppHeader title="Dashboard" />
         <div className={styles.loading}><Spinner /></div>
       </div>
     );
@@ -74,9 +75,9 @@ export default function DashboardPage() {
 
   return (
     <div className="page">
-      <div className={styles.header}>
-        <h1>Dashboard</h1>
-        {rate && (
+      <AppHeader
+        title="Dashboard"
+        actions={rate && (
           <button
             className={styles.toggleBtn}
             onClick={() => setShowUsd((v) => !v)}
@@ -86,7 +87,7 @@ export default function DashboardPage() {
             <span>{showUsd ? 'Bs.' : 'USD'}</span>
           </button>
         )}
-      </div>
+      />
 
       <SectionTabs
         tabs={TABS}

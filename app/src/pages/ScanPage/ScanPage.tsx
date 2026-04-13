@@ -6,6 +6,7 @@ import { createPago } from '@/services/pago.service';
 import type { ScanResponse } from '@/types/common';
 import type { Pago } from '@/types/pago';
 import { IconCamera, IconPencil, IconAlertTriangle } from '@tabler/icons-react';
+import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import Spinner from '@/components/atoms/Spinner/Spinner';
@@ -64,7 +65,7 @@ export default function ScanPage() {
 
   return (
     <div className="page">
-      <h1>Registrar pago</h1>
+      <AppHeader title="Registrar pago" />
 
       {!scanConfigured && state === 'idle' && (
         <div className={styles.warning}>

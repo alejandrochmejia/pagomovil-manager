@@ -4,6 +4,7 @@ import { getDefaultDateRange } from '@/services/stats.service';
 import type { Pago } from '@/types/pago';
 import type { DateRange } from '@/types/common';
 import { IconCoin } from '@tabler/icons-react';
+import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
@@ -64,12 +65,14 @@ export default function PagosPage() {
 
   return (
     <div className="page">
-      <div className={styles.header}>
-        <h1>Pagos</h1>
-        <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
-          + Nuevo
-        </Button>
-      </div>
+      <AppHeader
+        title="Pagos"
+        actions={
+          <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
+            + Nuevo
+          </Button>
+        }
+      />
 
       <div className={styles.filters}>
         <SearchBar

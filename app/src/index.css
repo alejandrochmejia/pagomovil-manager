@@ -111,11 +111,6 @@ body {
   padding: var(--space-md);
 }
 
-.page h1 {
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  margin-bottom: var(--space-md);
-}
 
 input,
 button,
