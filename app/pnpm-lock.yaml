@@ -26,12 +26,6 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
-      dexie:
-        specifier: ^4.3.0
-        version: 4.3.0
-      dexie-react-hooks:
-        specifier: ^4.2.0
-        version: 4.2.0(@types/react@19.2.14)(dexie@4.3.0)(react@19.2.4)
       react:
         specifier: ^19.2.0
         version: 19.2.4
@@ -974,16 +968,6 @@ packages:
   define-lazy-prop@2.0.0:
     resolution: {integrity: sha512-Ds09qNh8yw3khSjiJjiUInaGX9xlqZDY7JVryGxdxV7NPeuqQfplOpQ66yJFZut3jLa5zOwkXw1g9EI2uKh4Og==}
     engines: {node: '>=8'}
-
-  dexie-react-hooks@4.2.0:
-    resolution: {integrity: sha512-u7KqTX9JpBQK8+tEyA9X0yMGXlSCsbm5AU64N6gjvGk/IutYDpLBInMYEAEC83s3qhIvryFS+W+sqLZUBEvePQ==}
-    peerDependencies:
-      '@types/react': '>=16'
-      dexie: '>=4.2.0-alpha.1 <5.0.0'
-      react: '>=16'
-
-  dexie@4.3.0:
-    resolution: {integrity: sha512-5EeoQpJvMKHe6zWt/FSIIuRa3CWlZeIl6zKXt+Lz7BU6RoRRLgX9dZEynRfXrkLcldKYCBiz7xekTEylnie1Ug==}
 
   electron-to-chromium@1.5.302:
     resolution: {integrity: sha512-sM6HAN2LyK82IyPBpznDRqlTQAtuSaO+ShzFiWTvoMJLHyZ+Y39r8VMfHzwbU8MVBzQ4Wdn85+wlZl2TLGIlwg==}
@@ -2501,14 +2485,6 @@ snapshots:
   deep-is@0.1.4: {}
 
   define-lazy-prop@2.0.0: {}
-
-  dexie-react-hooks@4.2.0(@types/react@19.2.14)(dexie@4.3.0)(react@19.2.4):
-    dependencies:
-      '@types/react': 19.2.14
-      dexie: 4.3.0
-      react: 19.2.4
-
-  dexie@4.3.0: {}
 
   electron-to-chromium@1.5.302: {}
 

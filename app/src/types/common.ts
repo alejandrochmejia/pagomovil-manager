@@ -46,17 +46,6 @@ export interface ScanStats {
 
 export type KpiSection = 'resumen' | 'finanzas' | 'bancos' | 'operaciones' | 'riesgo';
 
-export interface N8nScanResponse {
-  monto?: number;
-  banco?: string;
-  cedula?: string;
-  telefono?: string;
-  fecha?: string;
-  hora?: string;
-  referencia?: string;
-  concepto?: string;
-}
-
 export interface ScanResponse {
   monto: number | null;
   comision: number | null;
