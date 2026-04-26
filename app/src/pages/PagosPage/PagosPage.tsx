@@ -16,6 +16,8 @@ import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePic
 import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './PagosPage.module.css';
 
+const PAGE_SIZE = 25;
+
 export default function PagosPage() {
   const perms = usePermissions();
   const [range, setRange] = useState<DateRange>(getDefaultDateRange);
@@ -24,13 +26,39 @@ export default function PagosPage() {
   const [editing, setEditing] = useState<Pago | undefined>();
   const [deleting, setDeleting] = useState<Pago | undefined>();
   const [pagos, setPagos] = useState<Pago[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [version, setVersion] = useState(0);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
-    getPagosByDateRange(range).then(setPagos);
+    setLoading(true);
+    getPagosByDateRange(range, 1, PAGE_SIZE)
+      .then((res) => {
+        setPagos(res.items);
+        setTotal(res.total);
+        setHasMore(res.has_more);
+        setPage(1);
+      })
+      .finally(() => setLoading(false));
   }, [range, version]);
+
+  async function loadMore() {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const next = page + 1;
+      const res = await getPagosByDateRange(range, next, PAGE_SIZE);
+      setPagos((prev) => [...prev, ...res.items]);
+      setHasMore(res.has_more);
+      setPage(next);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search) return pagos;
@@ -89,14 +117,14 @@ export default function PagosPage() {
         )}
       </div>
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && !loading && (
         <EmptyState
           icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin pagos"
           description={search ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
           action={
             !search && perms.canCreatePago ? (
-              <Button onClick={() => setShowForm(true)}>Registrar pago</Button>
+              <Button onClick={() => { setEditing(undefined); setShowForm(true); }}>Registrar pago</Button>
             ) : undefined
           }
         />
@@ -111,6 +139,19 @@ export default function PagosPage() {
           />
         ))}
       </div>
+
+      {pagos.length > 0 && (
+        <div className={styles.pagination}>
+          <span className={styles.count}>
+            Mostrando {pagos.length} de {total}
+          </span>
+          {hasMore && (
+            <Button variant="secondary" onClick={loadMore} disabled={loading}>
+              {loading ? 'Cargando...' : 'Cargar más'}
+            </Button>
+          )}
+        </div>
+      )}
 
       {perms.canCreatePago && (
         <Modal

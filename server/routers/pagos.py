@@ -24,6 +24,8 @@ def _audit(tabla: str, registro_id: int, accion: str, empresa_id: int, cambios: 
 async def list_pagos(
     desde: str | None = Query(None),
     hasta: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
     ctx: dict = Depends(get_user_with_role),
 ):
     rol = ctx["rol"]
@@ -40,9 +42,12 @@ async def list_pagos(
         if not hasta or hasta > today:
             hasta = today
 
+    start = (page - 1) * page_size
+    end = start + page_size - 1
+
     q = (
         supabase.table("pagos")
-        .select("*")
+        .select("*", count="exact")
         .eq("empresa_id", empresa_id)
         .order("fecha", desc=True)
         .order("id", desc=True)
@@ -51,7 +56,16 @@ async def list_pagos(
         q = q.gte("fecha", desde)
     if hasta:
         q = q.lte("fecha", hasta)
-    return q.execute().data
+    res = q.range(start, end).execute()
+    total = res.count or 0
+    items = res.data or []
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "has_more": (start + len(items)) < total,
+    }
 
 
 @router.post("", status_code=201)
