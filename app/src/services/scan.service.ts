@@ -1,3 +1,4 @@
+import { api } from './api';
 import type { ScanResponse } from '@/types/common';
 
 const API_URL = import.meta.env.VITE_SCAN_API_URL as string | undefined;
@@ -15,19 +16,11 @@ export async function scanReceipt(imageBase64: string): Promise<ScanResponse> {
   const timeout = setTimeout(() => controller.abort(), 60000);
 
   try {
-    const response = await fetch(`${API_URL}/scan`, {
+    return await api<ScanResponse>('/scan', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: imageBase64 }),
       signal: controller.signal,
     });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => null);
-      throw new Error(err?.detail ?? `Error del servidor: ${response.status}`);
-    }
-
-    return await response.json();
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error('Tiempo de espera agotado. Intenta de nuevo.');
