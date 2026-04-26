@@ -1,12 +1,12 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
 import { BANCOS, TIPOS_CEDULA } from '@/utils/constants';
 import { isValidCedula, isValidMonto, isValidReferencia } from '@/utils/validators';
 import { toISODate } from '@/utils/format';
-import { getAllCuentas } from '@/services/cuenta.service';
-import type { Pago, CuentaReceptora } from '@/types/pago';
+import { useCuentas } from '@/hooks/useCuentas';
+import type { Pago } from '@/types/pago';
 import styles from './PagoForm.module.css';
 
 const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
@@ -38,12 +38,8 @@ export default function PagoForm({
   const [hora, setHora] = useState(initial?.hora ?? '');
   const [concepto, setConcepto] = useState(initial?.concepto ?? '');
   const [cuentaId, setCuentaId] = useState(initial?.cuenta_receptora_id?.toString() ?? '');
-  const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    getAllCuentas().then(setCuentas);
-  }, []);
+  const { cuentas } = useCuentas();
 
   function validate(): boolean {
     const e: Record<string, string> = {};

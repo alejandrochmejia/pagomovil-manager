@@ -1,13 +1,24 @@
+import csv
+import io
 import json
-from datetime import date, timedelta
+import re
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from config import supabase
 from rbac import require_permission, get_user_with_role
 from schemas.pago import PagoCreate, PagoUpdate
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
+
+EXPORT_PAGE_SIZE = 500
+EXPORT_COLUMNS = [
+    "id", "fecha", "hora", "monto", "banco", "cedula", "telefono",
+    "referencia", "concepto", "estado", "origen", "cuenta_receptora_id",
+    "creado_en", "actualizado_en",
+]
 
 
 def _audit(tabla: str, registro_id: int, accion: str, empresa_id: int, cambios: dict | None = None):
@@ -20,43 +31,71 @@ def _audit(tabla: str, registro_id: int, accion: str, empresa_id: int, cambios: 
     }).execute()
 
 
-@router.get("")
-async def list_pagos(
-    desde: str | None = Query(None),
-    hasta: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=200),
-    ctx: dict = Depends(get_user_with_role),
-):
-    rol = ctx["rol"]
-    empresa_id = ctx["empresa_id"]
-    today = date.today().isoformat()
+def _sanitize_search(q: str) -> str:
+    # Strip PostgREST-significant chars to prevent filter injection
+    return re.sub(r"[,()*\\]", "", q).strip()[:100]
 
+
+def _constrain_dates_by_role(rol: str, desde: str | None, hasta: str | None) -> tuple[str | None, str | None]:
+    today = date.today().isoformat()
     if rol == "cajero":
-        desde = today
-        hasta = today
-    elif rol == "supervisor":
+        return today, today
+    if rol == "supervisor":
         min_date = (date.today() - timedelta(days=7)).isoformat()
         if not desde or desde < min_date:
             desde = min_date
         if not hasta or hasta > today:
             hasta = today
+    return desde, hasta
 
+
+def _apply_filters(query, desde: str | None, hasta: str | None, q: str | None):
+    if desde:
+        query = query.gte("fecha", desde)
+    if hasta:
+        query = query.lte("fecha", hasta)
+    if q:
+        term = _sanitize_search(q)
+        if term:
+            filters = [
+                f"banco.ilike.*{term}*",
+                f"cedula.ilike.*{term}*",
+                f"referencia.ilike.*{term}*",
+                f"concepto.ilike.*{term}*",
+                f"telefono.ilike.*{term}*",
+            ]
+            try:
+                monto_val = float(term)
+                filters.append(f"monto.eq.{monto_val}")
+            except ValueError:
+                pass
+            query = query.or_(",".join(filters))
+    return query
+
+
+@router.get("")
+async def list_pagos(
+    desde: str | None = Query(None),
+    hasta: str | None = Query(None),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    ctx: dict = Depends(get_user_with_role),
+):
+    desde, hasta = _constrain_dates_by_role(ctx["rol"], desde, hasta)
     start = (page - 1) * page_size
     end = start + page_size - 1
 
-    q = (
+    query = (
         supabase.table("pagos")
         .select("*", count="exact")
-        .eq("empresa_id", empresa_id)
+        .eq("empresa_id", ctx["empresa_id"])
         .order("fecha", desc=True)
         .order("id", desc=True)
     )
-    if desde:
-        q = q.gte("fecha", desde)
-    if hasta:
-        q = q.lte("fecha", hasta)
-    res = q.range(start, end).execute()
+    query = _apply_filters(query, desde, hasta, q)
+
+    res = query.range(start, end).execute()
     total = res.count or 0
     items = res.data or []
     return {
@@ -66,6 +105,60 @@ async def list_pagos(
         "page_size": page_size,
         "has_more": (start + len(items)) < total,
     }
+
+
+@router.get("/export.csv")
+async def export_pagos_csv(
+    desde: str | None = Query(None),
+    hasta: str | None = Query(None),
+    q: str | None = Query(None),
+    ctx: dict = Depends(get_user_with_role),
+):
+    desde, hasta = _constrain_dates_by_role(ctx["rol"], desde, hasta)
+    empresa_id = ctx["empresa_id"]
+
+    def row_iter():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(EXPORT_COLUMNS)
+        # UTF-8 BOM (﻿) for Excel compatibility with accented chars
+        yield "﻿" + buf.getvalue()
+
+        page = 1
+        while True:
+            start = (page - 1) * EXPORT_PAGE_SIZE
+            end = start + EXPORT_PAGE_SIZE - 1
+            query = (
+                supabase.table("pagos")
+                .select(",".join(EXPORT_COLUMNS))
+                .eq("empresa_id", empresa_id)
+                .order("fecha", desc=True)
+                .order("id", desc=True)
+            )
+            query = _apply_filters(query, desde, hasta, q)
+            res = query.range(start, end).execute()
+            rows = res.data or []
+            if not rows:
+                break
+
+            chunk = io.StringIO()
+            chunk_writer = csv.writer(chunk)
+            for row in rows:
+                chunk_writer.writerow([row.get(col, "") if row.get(col) is not None else "" for col in EXPORT_COLUMNS])
+            yield chunk.getvalue()
+
+            if len(rows) < EXPORT_PAGE_SIZE:
+                break
+            page += 1
+
+    filename = f"pagos-{datetime.now().strftime('%Y-%m-%d-%H%M')}.csv"
+    return StreamingResponse(
+        row_iter(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
 
 
 @router.post("", status_code=201)

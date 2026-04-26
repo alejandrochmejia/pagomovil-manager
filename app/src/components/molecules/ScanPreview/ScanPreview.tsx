@@ -1,9 +1,9 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { IconZoomIn } from '@tabler/icons-react';
 import type { ScanResponse } from '@/types/common';
-import type { Pago, CuentaReceptora } from '@/types/pago';
+import type { Pago } from '@/types/pago';
 import { formatCurrencyBs, toISODate } from '@/utils/format';
-import { getAllCuentas } from '@/services/cuenta.service';
+import { useCuentas } from '@/hooks/useCuentas';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
@@ -30,12 +30,8 @@ export default function ScanPreview({
   const [hora, setHora] = useState(scanResult.hora ?? '');
   const [concepto, setConcepto] = useState(scanResult.concepto ?? '');
   const [cuentaId, setCuentaId] = useState('');
-  const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    getAllCuentas().then(setCuentas);
-  }, []);
+  const { cuentas } = useCuentas();
 
   const hasComision = !!scanResult.comision && scanResult.comision > 0;
   const imageSrc = `data:image/jpeg;base64,${imageBase64}`;

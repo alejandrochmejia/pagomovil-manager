@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getPagosByDateRange, createPago, updatePago, deletePago } from '@/services/pago.service';
 import { getDefaultDateRange } from '@/services/stats.service';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -17,11 +17,13 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './PagosPage.module.css';
 
 const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function PagosPage() {
   const perms = usePermissions();
   const [range, setRange] = useState<DateRange>(getDefaultDateRange);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Pago | undefined>();
   const [deleting, setDeleting] = useState<Pago | undefined>();
@@ -35,8 +37,13 @@ export default function PagosPage() {
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
     setLoading(true);
-    getPagosByDateRange(range, 1, PAGE_SIZE)
+    getPagosByDateRange(range, 1, PAGE_SIZE, debouncedSearch)
       .then((res) => {
         setPagos(res.items);
         setTotal(res.total);
@@ -44,14 +51,14 @@ export default function PagosPage() {
         setPage(1);
       })
       .finally(() => setLoading(false));
-  }, [range, version]);
+  }, [range, debouncedSearch, version]);
 
   async function loadMore() {
     if (loading || !hasMore) return;
     setLoading(true);
     try {
       const next = page + 1;
-      const res = await getPagosByDateRange(range, next, PAGE_SIZE);
+      const res = await getPagosByDateRange(range, next, PAGE_SIZE, debouncedSearch);
       setPagos((prev) => [...prev, ...res.items]);
       setHasMore(res.has_more);
       setPage(next);
@@ -59,18 +66,6 @@ export default function PagosPage() {
       setLoading(false);
     }
   }
-
-  const filtered = useMemo(() => {
-    if (!search) return pagos;
-    const q = search.toLowerCase();
-    return pagos.filter(
-      (p) =>
-        p.banco.toLowerCase().includes(q) ||
-        p.cedula.toLowerCase().includes(q) ||
-        p.referencia.includes(q) ||
-        p.monto.toString().includes(q),
-    );
-  }, [pagos, search]);
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
 
@@ -117,13 +112,13 @@ export default function PagosPage() {
         )}
       </div>
 
-      {filtered.length === 0 && !loading && (
+      {pagos.length === 0 && !loading && (
         <EmptyState
           icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin pagos"
-          description={search ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
+          description={debouncedSearch ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
           action={
-            !search && perms.canCreatePago ? (
+            !debouncedSearch && perms.canCreatePago ? (
               <Button onClick={() => { setEditing(undefined); setShowForm(true); }}>Registrar pago</Button>
             ) : undefined
           }
@@ -131,7 +126,7 @@ export default function PagosPage() {
       )}
 
       <div className={styles.list}>
-        {filtered.map((pago) => (
+        {pagos.map((pago) => (
           <PagoCard
             key={pago.id}
             pago={pago}

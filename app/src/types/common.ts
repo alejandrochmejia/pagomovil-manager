@@ -1,15 +1,6 @@
-import type { Pago, CuentaReceptora } from './pago';
-
 export interface DateRange {
   from: string;
   to: string;
-}
-
-export interface ExportData {
-  version: number;
-  exportedAt: string;
-  pagos: Pago[];
-  cuentas: CuentaReceptora[];
 }
 
 export interface StatsSummary {

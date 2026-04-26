@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
-import {
-  buildExportData,
-  exportToJson,
-  downloadJson,
-} from '@/services/export.service';
+import { exportPagosCsv, downloadBlob } from '@/services/export.service';
 import { format } from 'date-fns';
 import { IconSun, IconMoon, IconDeviceDesktop } from '@tabler/icons-react';
 import Card from '@/components/atoms/Card/Card';
@@ -24,10 +20,9 @@ export default function SettingsApariencia() {
   async function handleExport() {
     setExporting(true);
     try {
-      const data = await buildExportData();
-      const json = exportToJson(data);
-      const filename = `pagomovil-export-${format(new Date(), 'yyyy-MM-dd-HHmm')}.json`;
-      downloadJson(json, filename);
+      const blob = await exportPagosCsv();
+      const filename = `pagos-${format(new Date(), 'yyyy-MM-dd-HHmm')}.csv`;
+      downloadBlob(blob, filename);
     } finally {
       setExporting(false);
     }
@@ -55,7 +50,7 @@ export default function SettingsApariencia() {
       <Card className={styles.section}>
         <h3 className={styles.sectionTitle}>Datos</h3>
         <Button variant="secondary" onClick={handleExport} disabled={exporting}>
-          {exporting ? 'Exportando...' : 'Exportar datos'}
+          {exporting ? 'Exportando...' : 'Exportar pagos (CSV)'}
         </Button>
       </Card>
     </div>

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getAllCuentas, createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
+import { useState } from 'react';
+import { createCuenta, updateCuenta, deleteCuenta } from '@/services/cuenta.service';
+import { useCuentas } from '@/hooks/useCuentas';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { CuentaReceptora } from '@/types/pago';
 import { IconUser } from '@tabler/icons-react';
@@ -14,17 +15,10 @@ import styles from './CuentasPage.module.css';
 
 export default function CuentasPage() {
   const perms = usePermissions();
-  const [cuentas, setCuentas] = useState<CuentaReceptora[]>([]);
+  const { cuentas, loading } = useCuentas();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CuentaReceptora | undefined>();
   const [deleting, setDeleting] = useState<CuentaReceptora | undefined>();
-  const [version, setVersion] = useState(0);
-
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
-
-  useEffect(() => {
-    getAllCuentas().then(setCuentas);
-  }, [version]);
 
   async function handleSubmit(data: Omit<CuentaReceptora, 'id' | 'creado_en'>) {
     if (editing?.id) {
@@ -34,7 +28,6 @@ export default function CuentasPage() {
     }
     setShowForm(false);
     setEditing(undefined);
-    reload();
   }
 
   async function handleDelete() {
@@ -42,7 +35,6 @@ export default function CuentasPage() {
       await deleteCuenta(deleting.id);
     }
     setDeleting(undefined);
-    reload();
   }
 
   return (
@@ -58,7 +50,7 @@ export default function CuentasPage() {
         }
       />
 
-      {cuentas.length === 0 && (
+      {cuentas.length === 0 && !loading && (
         <EmptyState
           icon={<IconUser size={48} stroke={1.5} />}
           title="Sin cuentas"
