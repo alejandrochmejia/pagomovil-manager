@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth';
 import {
   getStatsSummary,
   getStatsBreakdown,
@@ -8,34 +9,37 @@ import {
 import { fetchStats, invalidateStats, peekStats } from '@/services/stats.cache';
 import type { StatsSummary, StatsBreakdown, ScanStats, DateRange, KpiSection } from '@/types/common';
 
-const KEY_SUMMARY = 'summary';
-const KEY_SCANS = 'scans';
-const breakdownKey = (groupBy: 'banco' | 'dia' | 'hora', range: DateRange) =>
-  `breakdown:${groupBy}:${range.from}:${range.to}`;
+const summaryKey = (eid: string) => `summary:${eid}`;
+const scansKey = (eid: string) => `scans:${eid}`;
+const breakdownKey = (gb: 'banco' | 'dia' | 'hora', eid: string, range: DateRange) =>
+  `breakdown:${gb}:${eid}:${range.from}:${range.to}`;
 
 export function useDashboardStats(section: KpiSection) {
+  const { empresaId } = useAuth();
+  const eid = empresaId != null ? String(empresaId) : 'none';
+
   const [range, setRange] = useState<DateRange>(getDefaultDateRange);
   const [summary, setSummary] = useState<StatsSummary | null>(
-    () => peekStats<StatsSummary>(KEY_SUMMARY) ?? null,
+    () => peekStats<StatsSummary>(summaryKey(eid)) ?? null,
   );
   const [breakdownBanco, setBreakdownBanco] = useState<StatsBreakdown[]>([]);
   const [breakdownDia, setBreakdownDia] = useState<StatsBreakdown[]>([]);
   const [breakdownHora, setBreakdownHora] = useState<StatsBreakdown[]>([]);
   const [scanStats, setScanStats] = useState<ScanStats | null>(
-    () => peekStats<ScanStats>(KEY_SCANS) ?? null,
+    () => peekStats<ScanStats>(scansKey(eid)) ?? null,
   );
-  const [loading, setLoading] = useState(() => !peekStats<StatsSummary>(KEY_SUMMARY));
+  const [loading, setLoading] = useState(() => !peekStats<StatsSummary>(summaryKey(eid)));
 
   const loadSummary = useCallback(async () => {
-    const cached = peekStats<StatsSummary>(KEY_SUMMARY);
-    if (!cached) setLoading(true);
+    const key = summaryKey(eid);
+    if (!peekStats<StatsSummary>(key)) setLoading(true);
     try {
-      const s = await fetchStats(KEY_SUMMARY, getStatsSummary);
+      const s = await fetchStats(key, getStatsSummary, { persist: true });
       setSummary(s);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [eid]);
 
   useEffect(() => {
     loadSummary();
@@ -43,35 +47,39 @@ export function useDashboardStats(section: KpiSection) {
 
   useEffect(() => {
     if (section === 'finanzas') {
-      const cachedDia = peekStats<StatsBreakdown[]>(breakdownKey('dia', range));
-      const cachedHora = peekStats<StatsBreakdown[]>(breakdownKey('hora', range));
+      const kDia = breakdownKey('dia', eid, range);
+      const kHora = breakdownKey('hora', eid, range);
+      const cachedDia = peekStats<StatsBreakdown[]>(kDia);
+      const cachedHora = peekStats<StatsBreakdown[]>(kHora);
       if (cachedDia) setBreakdownDia(cachedDia);
       if (cachedHora) setBreakdownHora(cachedHora);
-      fetchStats(breakdownKey('dia', range), () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia);
-      fetchStats(breakdownKey('hora', range), () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora);
+      fetchStats(kDia, () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia);
+      fetchStats(kHora, () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora);
     } else if (section === 'bancos') {
-      const cached = peekStats<StatsBreakdown[]>(breakdownKey('banco', range));
+      const k = breakdownKey('banco', eid, range);
+      const cached = peekStats<StatsBreakdown[]>(k);
       if (cached) setBreakdownBanco(cached);
-      fetchStats(breakdownKey('banco', range), () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco);
+      fetchStats(k, () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco);
     } else if (section === 'operaciones') {
-      const cached = peekStats<ScanStats>(KEY_SCANS);
+      const k = scansKey(eid);
+      const cached = peekStats<ScanStats>(k);
       if (cached) setScanStats(cached);
-      fetchStats(KEY_SCANS, getScanStats).then(setScanStats);
+      fetchStats(k, getScanStats, { persist: true }).then(setScanStats);
     }
-  }, [section, range]);
+  }, [section, range, eid]);
 
   const refresh = useCallback(() => {
     invalidateStats();
     loadSummary();
     if (section === 'finanzas') {
-      fetchStats(breakdownKey('dia', range), () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia);
-      fetchStats(breakdownKey('hora', range), () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora);
+      fetchStats(breakdownKey('dia', eid, range), () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia);
+      fetchStats(breakdownKey('hora', eid, range), () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora);
     } else if (section === 'bancos') {
-      fetchStats(breakdownKey('banco', range), () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco);
+      fetchStats(breakdownKey('banco', eid, range), () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco);
     } else if (section === 'operaciones') {
-      fetchStats(KEY_SCANS, getScanStats).then(setScanStats);
+      fetchStats(scansKey(eid), getScanStats, { persist: true }).then(setScanStats);
     }
-  }, [section, range, loadSummary]);
+  }, [section, range, eid, loadSummary]);
 
   return {
     summary,

@@ -4,7 +4,7 @@ import json
 import re
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from config import supabase
@@ -162,7 +162,11 @@ async def export_pagos_csv(
 
 
 @router.post("", status_code=201)
-async def create_pago(pago: PagoCreate, ctx: dict = Depends(require_permission("pagos_crear"))):
+async def create_pago(
+    pago: PagoCreate,
+    background: BackgroundTasks,
+    ctx: dict = Depends(require_permission("pagos_crear")),
+):
     empresa_id = ctx["empresa_id"]
     scan_log_id = pago.scan_log_id
     data = pago.model_dump(exclude_none=True)
@@ -170,14 +174,19 @@ async def create_pago(pago: PagoCreate, ctx: dict = Depends(require_permission("
     data["empresa_id"] = empresa_id
     res = supabase.table("pagos").insert(data).execute()
     created = res.data[0]
-    _audit("pagos", created["id"], "crear", empresa_id)
     if scan_log_id:
         supabase.table("scan_logs").update({"pago_id": created["id"]}).eq("id", scan_log_id).execute()
+    background.add_task(_audit, "pagos", created["id"], "crear", empresa_id)
     return created
 
 
 @router.put("/{pago_id}")
-async def update_pago(pago_id: int, pago: PagoUpdate, ctx: dict = Depends(require_permission("pagos_editar"))):
+async def update_pago(
+    pago_id: int,
+    pago: PagoUpdate,
+    background: BackgroundTasks,
+    ctx: dict = Depends(require_permission("pagos_editar")),
+):
     empresa_id = ctx["empresa_id"]
     data = pago.model_dump(exclude_none=True)
     if not data:
@@ -185,12 +194,17 @@ async def update_pago(pago_id: int, pago: PagoUpdate, ctx: dict = Depends(requir
     res = supabase.table("pagos").update(data).eq("id", pago_id).eq("empresa_id", empresa_id).execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
-    _audit("pagos", pago_id, "editar", empresa_id, data)
+    background.add_task(_audit, "pagos", pago_id, "editar", empresa_id, data)
     return res.data[0]
 
 
 @router.delete("/{pago_id}", status_code=204)
-async def delete_pago(pago_id: int, ctx: dict = Depends(require_permission("pagos_eliminar"))):
+async def delete_pago(
+    pago_id: int,
+    background: BackgroundTasks,
+    ctx: dict = Depends(require_permission("pagos_eliminar")),
+):
     empresa_id = ctx["empresa_id"]
-    _audit("pagos", pago_id, "eliminar", empresa_id)
-    supabase.table("pagos").delete().eq("id", pago_id).eq("empresa_id", empresa_id).execute()
+    res = supabase.table("pagos").delete().eq("id", pago_id).eq("empresa_id", empresa_id).execute()
+    if res.data:
+        background.add_task(_audit, "pagos", pago_id, "eliminar", empresa_id)
