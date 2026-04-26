@@ -1,7 +1,7 @@
 import { apiBlob } from './api';
 import type { DateRange } from '@/types/common';
 
-export async function exportPagosCsv(range?: DateRange, search?: string): Promise<Blob> {
+function buildExportParams(range?: DateRange, search?: string): string {
   const params = new URLSearchParams();
   if (range) {
     params.set('desde', range.from);
@@ -9,7 +9,15 @@ export async function exportPagosCsv(range?: DateRange, search?: string): Promis
   }
   if (search?.trim()) params.set('q', search.trim());
   const qs = params.toString();
-  return apiBlob(`/pagos/export.csv${qs ? `?${qs}` : ''}`);
+  return qs ? `?${qs}` : '';
+}
+
+export async function exportPagosCsv(range?: DateRange, search?: string): Promise<Blob> {
+  return apiBlob(`/pagos/export.csv${buildExportParams(range, search)}`);
+}
+
+export async function exportPagosPdf(range?: DateRange, search?: string): Promise<Blob> {
+  return apiBlob(`/pagos/export.pdf${buildExportParams(range, search)}`);
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

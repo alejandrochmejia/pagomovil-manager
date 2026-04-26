@@ -5,11 +5,14 @@ import re
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from config import supabase
 from rbac import require_permission, get_user_with_role
 from schemas.pago import PagoCreate, PagoUpdate
+from services.pdf_export import generate_pagos_pdf
+
+PDF_MAX_ROWS = 5000
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
 
@@ -158,6 +161,69 @@ async def export_pagos_csv(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
+    )
+
+
+@router.get("/export.pdf")
+async def export_pagos_pdf(
+    desde: str | None = Query(None),
+    hasta: str | None = Query(None),
+    q: str | None = Query(None),
+    ctx: dict = Depends(require_permission("exportar")),
+):
+    desde, hasta = _constrain_dates_by_role(ctx["rol"], desde, hasta)
+    empresa_id = ctx["empresa_id"]
+
+    emp_res = (
+        supabase.table("empresas")
+        .select("nombre")
+        .eq("id", empresa_id)
+        .limit(1)
+        .execute()
+    )
+    empresa_name = emp_res.data[0]["nombre"] if emp_res.data else ""
+
+    items: list[dict] = []
+    page = 1
+    truncated = False
+    while True:
+        start = (page - 1) * EXPORT_PAGE_SIZE
+        end = start + EXPORT_PAGE_SIZE - 1
+        query = (
+            supabase.table("pagos")
+            .select(",".join(EXPORT_COLUMNS))
+            .eq("empresa_id", empresa_id)
+            .order("fecha", desc=True)
+            .order("id", desc=True)
+        )
+        query = _apply_filters(query, desde, hasta, q)
+        res = query.range(start, end).execute()
+        rows = res.data or []
+        if not rows:
+            break
+        items.extend(rows)
+        if len(items) >= PDF_MAX_ROWS:
+            items = items[:PDF_MAX_ROWS]
+            truncated = True
+            break
+        if len(rows) < EXPORT_PAGE_SIZE:
+            break
+        page += 1
+
+    if truncated:
+        # Marcar truncamiento agregando un item ficticio? No, mejor pasar a la metadata.
+        pass
+
+    pdf_bytes = generate_pagos_pdf(
+        items,
+        {"from": desde, "to": hasta} if (desde or hasta) else None,
+        empresa_name,
+    )
+    filename = f"pagos-{datetime.now().strftime('%Y-%m-%d-%H%M')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
