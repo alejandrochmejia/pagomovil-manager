@@ -20,6 +20,10 @@ export async function exportPagosPdf(range?: DateRange, search?: string): Promis
   return apiBlob(`/pagos/export.pdf${buildExportParams(range, search)}`);
 }
 
+export async function exportPagosJson(range?: DateRange, search?: string): Promise<Blob> {
+  return apiBlob(`/pagos/export.json${buildExportParams(range, search)}`);
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

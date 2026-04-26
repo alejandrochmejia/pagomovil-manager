@@ -110,12 +110,63 @@ async def list_pagos(
     }
 
 
+@router.get("/export.json")
+async def export_pagos_json(
+    desde: str | None = Query(None),
+    hasta: str | None = Query(None),
+    q: str | None = Query(None),
+    ctx: dict = Depends(require_permission("exportar")),
+):
+    desde, hasta = _constrain_dates_by_role(ctx["rol"], desde, hasta)
+    empresa_id = ctx["empresa_id"]
+
+    def row_iter():
+        yield "[\n"
+        page = 1
+        first = True
+        while True:
+            start = (page - 1) * EXPORT_PAGE_SIZE
+            end = start + EXPORT_PAGE_SIZE - 1
+            query = (
+                supabase.table("pagos")
+                .select(",".join(EXPORT_COLUMNS))
+                .eq("empresa_id", empresa_id)
+                .order("fecha", desc=True)
+                .order("id", desc=True)
+            )
+            query = _apply_filters(query, desde, hasta, q)
+            res = query.range(start, end).execute()
+            rows = res.data or []
+            if not rows:
+                break
+            buf_parts: list[str] = []
+            for row in rows:
+                serialized = json.dumps(row, default=str, ensure_ascii=False)
+                if first:
+                    buf_parts.append(f"  {serialized}")
+                    first = False
+                else:
+                    buf_parts.append(f",\n  {serialized}")
+            yield "".join(buf_parts)
+            if len(rows) < EXPORT_PAGE_SIZE:
+                break
+            page += 1
+        yield "\n]\n"
+
+    filename = f"pagos-{datetime.now().strftime('%Y-%m-%d-%H%M')}.json"
+    return StreamingResponse(
+        row_iter(),
+        media_type="application/json; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/export.csv")
 async def export_pagos_csv(
     desde: str | None = Query(None),
     hasta: str | None = Query(None),
     q: str | None = Query(None),
-    ctx: dict = Depends(get_user_with_role),
+    ctx: dict = Depends(require_permission("exportar")),
 ):
     desde, hasta = _constrain_dates_by_role(ctx["rol"], desde, hasta)
     empresa_id = ctx["empresa_id"]

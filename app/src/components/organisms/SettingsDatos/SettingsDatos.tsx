@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { exportPagosCsv, exportPagosPdf, downloadBlob } from '@/services/export.service';
+import {
+  exportPagosCsv,
+  exportPagosPdf,
+  exportPagosJson,
+  downloadBlob,
+} from '@/services/export.service';
 import { getDefaultDateRange } from '@/services/stats.service';
 import Card from '@/components/atoms/Card/Card';
 import Button from '@/components/atoms/Button/Button';
@@ -8,7 +13,13 @@ import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePic
 import type { DateRange } from '@/types/common';
 import styles from './SettingsDatos.module.css';
 
-type Format = 'csv' | 'pdf';
+type Format = 'csv' | 'pdf' | 'json';
+
+const exporters: Record<Format, (r?: DateRange, s?: string) => Promise<Blob>> = {
+  csv: exportPagosCsv,
+  pdf: exportPagosPdf,
+  json: exportPagosJson,
+};
 
 export default function SettingsDatos() {
   const [range, setRange] = useState<DateRange>(getDefaultDateRange);
@@ -19,7 +30,7 @@ export default function SettingsDatos() {
     setBusy(fmt);
     setError(null);
     try {
-      const blob = fmt === 'csv' ? await exportPagosCsv(range) : await exportPagosPdf(range);
+      const blob = await exporters[fmt](range);
       const stamp = format(new Date(), 'yyyy-MM-dd-HHmm');
       downloadBlob(blob, `pagos-${stamp}.${fmt}`);
     } catch (err) {
@@ -41,6 +52,12 @@ export default function SettingsDatos() {
 
         <div className={styles.actions}>
           <Button
+            onClick={() => handleExport('pdf')}
+            disabled={busy !== null}
+          >
+            {busy === 'pdf' ? 'Generando PDF...' : 'Descargar PDF'}
+          </Button>
+          <Button
             variant="secondary"
             onClick={() => handleExport('csv')}
             disabled={busy !== null}
@@ -48,10 +65,11 @@ export default function SettingsDatos() {
             {busy === 'csv' ? 'Generando CSV...' : 'Descargar CSV'}
           </Button>
           <Button
-            onClick={() => handleExport('pdf')}
+            variant="secondary"
+            onClick={() => handleExport('json')}
             disabled={busy !== null}
           >
-            {busy === 'pdf' ? 'Generando PDF...' : 'Descargar PDF'}
+            {busy === 'json' ? 'Generando JSON...' : 'Descargar JSON'}
           </Button>
         </div>
 
