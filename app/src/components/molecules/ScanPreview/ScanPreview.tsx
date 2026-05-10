@@ -1,13 +1,22 @@
-import { useState, type FormEvent } from 'react';
-import { IconZoomIn } from '@tabler/icons-react';
+import { useState, useMemo, type FormEvent } from 'react';
+import { IconZoomIn, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import type { ScanResponse } from '@/types/common';
-import type { Pago } from '@/types/pago';
+import type { Pago, CuentaReceptora } from '@/types/pago';
 import { formatCurrencyBs, toISODate } from '@/utils/format';
+import {
+  findMatchingCuenta,
+  findClosestBanco,
+  hasReceptorData,
+  type ScanReceptor,
+} from '@/utils/matchCuenta';
 import { useCuentas } from '@/hooks/useCuentas';
+import { createCuenta } from '@/services/cuenta.service';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
+import Modal from '@/components/atoms/Modal/Modal';
+import CuentaForm from '@/components/molecules/CuentaForm/CuentaForm';
 import styles from './ScanPreview.module.css';
 
 interface ScanPreviewProps {
@@ -29,12 +38,55 @@ export default function ScanPreview({
   const [fecha, setFecha] = useState(scanResult.fecha ?? toISODate(new Date()));
   const [hora, setHora] = useState(scanResult.hora ?? '');
   const [concepto, setConcepto] = useState(scanResult.concepto ?? '');
-  const [cuentaId, setCuentaId] = useState('');
+  const [cuentaIdOverride, setCuentaIdOverride] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { cuentas } = useCuentas();
+  const [showCreateCuenta, setShowCreateCuenta] = useState(false);
+  const { cuentas, refresh } = useCuentas();
+
+  const receptor: ScanReceptor = useMemo(
+    () => ({
+      banco: scanResult.banco_destino,
+      telefono: scanResult.telefono_destino,
+      cedula: scanResult.cedula_destino,
+    }),
+    [scanResult.banco_destino, scanResult.telefono_destino, scanResult.cedula_destino],
+  );
+
+  const hasReceptor = hasReceptorData(receptor);
+
+  const matchedCuenta = useMemo(
+    () => (hasReceptor ? findMatchingCuenta(cuentas, receptor) : undefined),
+    [cuentas, receptor, hasReceptor],
+  );
+
+  const cuentaId =
+    cuentaIdOverride ?? (matchedCuenta?.id ? String(matchedCuenta.id) : '');
 
   const hasComision = !!scanResult.comision && scanResult.comision > 0;
   const imageSrc = `data:image/jpeg;base64,${imageBase64}`;
+  const showNoMatchAlert = hasReceptor && !matchedCuenta && !cuentaId;
+  const showMatchInfo = !!matchedCuenta && cuentaId === String(matchedCuenta.id);
+
+  function handleCuentaChange(value: string) {
+    setCuentaIdOverride(value);
+  }
+
+  async function handleCreateCuenta(data: Omit<CuentaReceptora, 'id' | 'creado_en'>) {
+    const created = await createCuenta(data);
+    await refresh();
+    if (created.id) {
+      setCuentaIdOverride(String(created.id));
+    }
+    setShowCreateCuenta(false);
+  }
+
+  const initialCuentaForCreate: CuentaReceptora = {
+    nombre: '',
+    banco: findClosestBanco(scanResult.banco_destino),
+    telefono: scanResult.telefono_destino ?? '',
+    cedula: scanResult.cedula_destino ?? '',
+    activa: true,
+  };
 
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
@@ -134,15 +186,47 @@ export default function ScanPreview({
             onChange={(e) => setHora(e.target.value)}
           />
         </div>
+
+        {showNoMatchAlert && (
+          <div className={styles.cuentaAlert}>
+            <IconAlertTriangle size={20} stroke={1.8} className={styles.cuentaAlertIcon} />
+            <div className={styles.cuentaAlertBody}>
+              <strong>No se encontró una cuenta receptora</strong>
+              <span>
+                Datos detectados:
+                {scanResult.banco_destino ? ` ${scanResult.banco_destino}` : ''}
+                {scanResult.telefono_destino ? ` · ${scanResult.telefono_destino}` : ''}
+                {scanResult.cedula_destino ? ` · ${scanResult.cedula_destino}` : ''}
+              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowCreateCuenta(true)}
+              >
+                Crear cuenta receptora
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showMatchInfo && (
+          <div className={styles.cuentaMatch}>
+            <IconCircleCheck size={18} stroke={1.8} className={styles.cuentaMatchIcon} />
+            <span>
+              Vinculado automáticamente con <strong>{matchedCuenta!.nombre}</strong>
+            </span>
+          </div>
+        )}
+
         {cuentas.length > 0 && (
           <Select
-            label="Cuenta receptora (opcional)"
+            label="Cuenta receptora"
             options={cuentas.map((c) => ({
               value: String(c.id),
               label: `${c.nombre} - ${c.banco}`,
             }))}
             value={cuentaId}
-            onChange={(e) => setCuentaId(e.target.value)}
+            onChange={(e) => handleCuentaChange(e.target.value)}
             placeholder="Sin cuenta asociada"
           />
         )}
@@ -159,6 +243,18 @@ export default function ScanPreview({
           <Button type="submit">Guardar pago</Button>
         </div>
       </form>
+
+      <Modal
+        isOpen={showCreateCuenta}
+        onClose={() => setShowCreateCuenta(false)}
+        title="Crear cuenta receptora"
+      >
+        <CuentaForm
+          initial={initialCuentaForCreate}
+          onSubmit={handleCreateCuenta}
+          onCancel={() => setShowCreateCuenta(false)}
+        />
+      </Modal>
     </div>
   );
 }

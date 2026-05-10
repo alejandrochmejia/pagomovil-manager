@@ -16,3 +16,6 @@ class ScanResponse(BaseModel):
     hora: str | None = None
     referencia: str | None = None
     concepto: str | None = None
+    banco_destino: str | None = None
+    cedula_destino: str | None = None
+    telefono_destino: str | None = None

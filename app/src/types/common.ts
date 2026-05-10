@@ -48,4 +48,7 @@ export interface ScanResponse {
   hora: string | null;
   referencia: string | null;
   concepto: string | null;
+  banco_destino: string | null;
+  cedula_destino: string | null;
+  telefono_destino: string | null;
 }
