@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getPagosByDateRange, createPago, updatePago, deletePago } from '@/services/pago.service';
 import { getDefaultDateRange } from '@/services/stats.service';
+import { getBcvRatesByRange } from '@/services/bcv.service';
+import { useBcvRate } from '@/hooks/useBcvRate';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { Pago } from '@/types/pago';
 import type { DateRange } from '@/types/common';
-import { IconCoin } from '@tabler/icons-react';
+import { IconCoin, IconArrowsExchange } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
@@ -33,8 +35,38 @@ export default function PagosPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [version, setVersion] = useState(0);
+  const [showUsd, setShowUsd] = useState(false);
+  const [rates, setRates] = useState<Record<string, number>>({});
+
+  const { rate: currentRate } = useBcvRate();
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getBcvRatesByRange(range.from, range.to)
+      .then((list) => {
+        if (cancelled) return;
+        const map: Record<string, number> = {};
+        for (const r of list) map[r.fecha] = r.promedio;
+        setRates(map);
+      })
+      .catch(() => {
+        if (!cancelled) setRates({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range.from, range.to, version]);
+
+  const ratesByDate = useMemo(() => {
+    const map = { ...rates };
+    if (currentRate) {
+      const today = currentRate.fechaActualizacion.slice(0, 10);
+      if (!map[today]) map[today] = currentRate.promedio;
+    }
+    return map;
+  }, [rates, currentRate]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
@@ -93,11 +125,22 @@ export default function PagosPage() {
       <AppHeader
         title="Pagos"
         actions={
-          perms.canCreatePago ? (
-            <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
-              + Nuevo
-            </Button>
-          ) : undefined
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.toggleBtn}
+              onClick={() => setShowUsd((v) => !v)}
+              aria-label="Cambiar moneda"
+            >
+              <IconArrowsExchange size={14} stroke={1.5} />
+              <span>{showUsd ? 'Bs.' : 'USD'}</span>
+            </button>
+            {perms.canCreatePago && (
+              <Button size="sm" onClick={() => { setEditing(undefined); setShowForm(true); }}>
+                + Nuevo
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -130,6 +173,8 @@ export default function PagosPage() {
           <PagoCard
             key={pago.id}
             pago={pago}
+            showUsd={showUsd}
+            rateForDate={ratesByDate[pago.fecha]}
             onClick={perms.canEditPago ? () => { setEditing(pago); setShowForm(true); } : undefined}
           />
         ))}
