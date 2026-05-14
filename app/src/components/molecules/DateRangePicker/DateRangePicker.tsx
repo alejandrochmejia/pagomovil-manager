@@ -1,4 +1,4 @@
-import { format, startOfMonth, startOfWeek, endOfMonth } from 'date-fns';
+import { format, startOfMonth, startOfWeek, endOfMonth, subMonths } from 'date-fns';
 import Button from '@/components/atoms/Button/Button';
 import Input from '@/components/atoms/Input/Input';
 import type { DateRange } from '@/types/common';
@@ -8,6 +8,8 @@ interface DateRangePickerProps {
   value: DateRange;
   onChange: (range: DateRange) => void;
 }
+
+const HISTORIC_FROM = '2000-01-01';
 
 const presets = [
   {
@@ -29,6 +31,23 @@ const presets = [
     get: (): DateRange => ({
       from: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
       to: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+    }),
+  },
+  {
+    label: 'Mes pasado',
+    get: (): DateRange => {
+      const prev = subMonths(new Date(), 1);
+      return {
+        from: format(startOfMonth(prev), 'yyyy-MM-dd'),
+        to: format(endOfMonth(prev), 'yyyy-MM-dd'),
+      };
+    },
+  },
+  {
+    label: 'Historico',
+    get: (): DateRange => ({
+      from: HISTORIC_FROM,
+      to: format(new Date(), 'yyyy-MM-dd'),
     }),
   },
 ];

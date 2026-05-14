@@ -35,6 +35,18 @@ export interface ScanStats {
   total_scans: number;
 }
 
+export interface StatsExtra {
+  total_mes_anterior: number;
+  cantidad_mes_anterior: number;
+  ticket_promedio_historico: number;
+}
+
+export interface StatsMonthly {
+  mes: string;
+  total: number;
+  cantidad: number;
+}
+
 export type KpiSection = 'resumen' | 'finanzas' | 'bancos' | 'operaciones' | 'riesgo';
 
 export interface ScanResponse {

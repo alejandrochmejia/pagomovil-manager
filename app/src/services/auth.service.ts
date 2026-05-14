@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_SCAN_API_URL as string;
+const BASE_URL = '/api';
 
 export interface AuthUser {
   id: string;

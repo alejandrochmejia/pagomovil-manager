@@ -1,9 +1,10 @@
 import type { StatsBreakdown, DateRange } from '@/types/common';
-import { IconBuildingBank } from '@tabler/icons-react';
+import { IconBuildingBank, IconCalendarOff } from '@tabler/icons-react';
 import KpiSection from '@/components/molecules/KpiSection/KpiSection';
 import BankRanking from '@/components/molecules/BankRanking/BankRanking';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import Card from '@/components/atoms/Card/Card';
+import EmptyState from '@/components/atoms/EmptyState/EmptyState';
 import {
   PieChart,
   Pie,
@@ -43,38 +44,46 @@ export default function DashboardBancos({
     >
       <DateRangePicker value={range} onChange={onRangeChange} />
 
-      {pieData.length > 0 && (
-        <Card>
-          <h3 className={styles.chartTitle}>Distribución por banco</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="total"
-                nameKey="banco"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label={(props: PieLabelRenderProps & { banco?: string }) => {
-                  const banco = String(props.banco ?? '');
-                  const percent = Number(props.percent ?? 0);
-                  return `${banco.slice(0, 10)} ${(percent * 100).toFixed(0)}%`;
-                }}
-                labelLine={false}
-                fontSize={10}
-              >
-                {pieData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => fmt(Number(value))} />
-              <Legend fontSize={11} />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      )}
+      {breakdownBanco.length === 0 ? (
+        <EmptyState
+          icon={<IconCalendarOff size={40} stroke={1.5} />}
+          title="Sin transacciones"
+          description="No hay pagos en el periodo seleccionado"
+        />
+      ) : (
+        <>
+          <Card>
+            <h3 className={styles.chartTitle}>Distribución por banco</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="total"
+                  nameKey="banco"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={(props: PieLabelRenderProps & { banco?: string }) => {
+                    const banco = String(props.banco ?? '');
+                    const percent = Number(props.percent ?? 0);
+                    return `${banco.slice(0, 10)} ${(percent * 100).toFixed(0)}%`;
+                  }}
+                  labelLine={false}
+                  fontSize={10}
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => fmt(Number(value))} />
+                <Legend fontSize={11} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
 
-      <BankRanking data={breakdownBanco} formatter={fmt} />
+          <BankRanking data={breakdownBanco} formatter={fmt} />
+        </>
+      )}
     </KpiSection>
   );
 }

@@ -48,6 +48,8 @@ export default function DashboardPage() {
     breakdownDia,
     breakdownHora,
     scanStats,
+    extra,
+    monthly,
     range,
     setRange,
     loading,
@@ -107,11 +109,14 @@ export default function DashboardPage() {
       {section === 'resumen' && (
         <DashboardResumen
           summary={summary}
+          extra={extra}
+          monthly={monthly}
           rate={rate}
           rateLoading={rateLoading}
           rateError={rateError}
           onRefreshRate={refreshRate}
           fmt={fmt}
+          fmtShort={fmtShort}
         />
       )}
 

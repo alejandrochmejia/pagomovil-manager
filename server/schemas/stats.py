@@ -31,3 +31,15 @@ class ScanStats(BaseModel):
     tiempo_promedio_ms: float = 0
     tasa_correccion: float = 0
     total_scans: int = 0
+
+
+class StatsExtra(BaseModel):
+    total_mes_anterior: float = 0
+    cantidad_mes_anterior: int = 0
+    ticket_promedio_historico: float = 0
+
+
+class StatsMonthly(BaseModel):
+    mes: str
+    total: float = 0
+    cantidad: int = 0

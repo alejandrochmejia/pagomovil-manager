@@ -75,7 +75,7 @@ export default function ScanPage() {
 
       {state === 'idle' && (
         <div className={styles.options}>
-          <button className={styles.optionCard} onClick={handleScan} disabled={!scanConfigured}>
+          <button type="button" className={styles.optionCard} onClick={handleScan} disabled={!scanConfigured}>
             <span className={styles.optionIcon}><IconCamera size={32} stroke={1.5} /></span>
             <span className={styles.optionTitle}>Escanear comprobante</span>
             <span className={styles.optionDesc}>
@@ -83,7 +83,7 @@ export default function ScanPage() {
             </span>
           </button>
 
-          <button className={styles.optionCard} onClick={() => setShowManualForm(true)}>
+          <button type="button" className={styles.optionCard} onClick={() => setShowManualForm(true)}>
             <span className={styles.optionIcon}><IconPencil size={32} stroke={1.5} /></span>
             <span className={styles.optionTitle}>Registro manual</span>
             <span className={styles.optionDesc}>

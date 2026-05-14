@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from config import supabase
 from rbac import get_user_with_role
-from schemas.stats import StatsSummary, ScanStats
+from schemas.stats import StatsSummary, ScanStats, StatsExtra, StatsMonthly
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -33,3 +33,15 @@ async def get_breakdown(
 async def get_scan_stats(ctx: dict = Depends(get_user_with_role)):
     res = supabase.rpc("get_scan_stats", {"p_empresa_id": ctx["empresa_id"]}).execute()
     return ScanStats(**res.data)
+
+
+@router.get("/extra", response_model=StatsExtra)
+async def get_extra(ctx: dict = Depends(get_user_with_role)):
+    res = supabase.rpc("get_stats_extra", {"p_empresa_id": ctx["empresa_id"]}).execute()
+    return StatsExtra(**res.data)
+
+
+@router.get("/monthly", response_model=list[StatsMonthly])
+async def get_monthly(ctx: dict = Depends(get_user_with_role)):
+    res = supabase.rpc("get_stats_monthly", {"p_empresa_id": ctx["empresa_id"]}).execute()
+    return [StatsMonthly(**row) for row in res.data]

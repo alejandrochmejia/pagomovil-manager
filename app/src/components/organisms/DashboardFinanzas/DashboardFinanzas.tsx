@@ -1,11 +1,12 @@
 import type { StatsSummary, StatsBreakdown, DateRange } from '@/types/common';
-import { IconCurrencyDollar } from '@tabler/icons-react';
+import { IconCurrencyDollar, IconCalendarOff } from '@tabler/icons-react';
 import KpiSection from '@/components/molecules/KpiSection/KpiSection';
 import ComparisonCard from '@/components/molecules/ComparisonCard/ComparisonCard';
 import HourlyChart from '@/components/molecules/HourlyChart/HourlyChart';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import ProgressBar from '@/components/atoms/ProgressBar/ProgressBar';
 import Card from '@/components/atoms/Card/Card';
+import EmptyState from '@/components/atoms/EmptyState/EmptyState';
 import {
   BarChart,
   Bar,
@@ -79,25 +80,35 @@ export default function DashboardFinanzas({
 
       <DateRangePicker value={range} onChange={onRangeChange} />
 
-      {breakdownDia.length > 0 && (
-        <Card>
-          <h3 className={styles.chartTitle}>Ingresos por día</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={breakdownDia.map((d) => ({ fecha: d.grupo, total: d.total }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="fecha" tickFormatter={(v: string) => v.slice(5)} fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={fmtShort} />
-              <Tooltip
-                formatter={(value) => [fmt(Number(value)), 'Total']}
-                labelFormatter={(label) => String(label)}
-              />
-              <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      )}
+      {breakdownDia.length === 0 && breakdownHora.length === 0 ? (
+        <EmptyState
+          icon={<IconCalendarOff size={40} stroke={1.5} />}
+          title="Sin transacciones"
+          description="No hay pagos en el periodo seleccionado"
+        />
+      ) : (
+        <>
+          {breakdownDia.length > 0 && (
+            <Card>
+              <h3 className={styles.chartTitle}>Ingresos por día</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={breakdownDia.map((d) => ({ fecha: d.grupo, total: d.total }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="fecha" tickFormatter={(v: string) => v.slice(5)} fontSize={11} />
+                  <YAxis fontSize={11} tickFormatter={fmtShort} />
+                  <Tooltip
+                    formatter={(value) => [fmt(Number(value)), 'Total']}
+                    labelFormatter={(label) => String(label)}
+                  />
+                  <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
 
-      <HourlyChart data={breakdownHora} formatter={fmtShort} />
+          <HourlyChart data={breakdownHora} formatter={fmtShort} />
+        </>
+      )}
     </KpiSection>
   );
 }
