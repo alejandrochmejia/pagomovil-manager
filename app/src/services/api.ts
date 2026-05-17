@@ -1,6 +1,6 @@
 import { getToken, getEmpresaId } from './auth.service';
 
-const BASE_URL = '/api';
+const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 function buildHeaders(extra?: HeadersInit, includeJsonContentType = true): Record<string, string> {
   const token = getToken();
