@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -17,6 +19,11 @@ function getStoredTheme(): Theme {
 function applyTheme(theme: Theme) {
   const resolved = theme === 'system' ? getSystemTheme() : theme;
   document.documentElement.setAttribute('data-theme', resolved);
+
+  if (Capacitor.isNativePlatform()) {
+    StatusBar.setStyle({ style: resolved === 'dark' ? Style.Dark : Style.Light }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: resolved === 'dark' ? '#0f172a' : '#f8fafc' }).catch(() => {});
+  }
 }
 
 export function useTheme() {

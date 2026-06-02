@@ -2,6 +2,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { IconCreditCardPay } from '@tabler/icons-react';
 import Spinner from '@/components/atoms/Spinner/Spinner';
+import OfflineBanner from '@/components/atoms/OfflineBanner/OfflineBanner';
 import styles from './Auth.module.css';
 
 export default function AuthLayout() {
@@ -21,6 +22,7 @@ export default function AuthLayout() {
 
   return (
     <div className={styles.layout}>
+      <OfflineBanner />
       <div className={styles.container}>
         <div className={styles.brandHeader}>
           <div className={styles.brandIcon}>

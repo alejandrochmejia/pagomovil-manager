@@ -3,6 +3,7 @@ import { useRouteIndex } from '@/hooks/useRouteIndex';
 import ProtectedRoute from '@/components/organisms/ProtectedRoute/ProtectedRoute';
 import NavBar from '@/components/organisms/NavBar/NavBar';
 import PageTransition from '@/components/atoms/PageTransition/PageTransition';
+import OfflineBanner from '@/components/atoms/OfflineBanner/OfflineBanner';
 import './App.css';
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
 
   return (
     <ProtectedRoute>
+      <OfflineBanner />
       <div className="app-layout">
         <main className="app-content">
           <PageTransition routeKey={pathname} direction={direction}>
