@@ -32,7 +32,7 @@ export default function SettingsDatos() {
     try {
       const blob = await exporters[fmt](range);
       const stamp = format(new Date(), 'yyyy-MM-dd-HHmm');
-      downloadBlob(blob, `pagos-${stamp}.${fmt}`);
+      await downloadBlob(blob, `pagos-${stamp}.${fmt}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al exportar');
     } finally {
