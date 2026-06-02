@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX } from '@tabler/icons-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import styles from './Modal.module.css';
 
 interface ModalProps {
@@ -11,6 +12,8 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+  useBackButtonClose(isOpen, onClose);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';

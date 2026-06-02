@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { IconX } from '@tabler/icons-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import styles from './ImageLightbox.module.css';
 
 interface ImageLightboxProps {
@@ -10,6 +11,8 @@ interface ImageLightboxProps {
 }
 
 export default function ImageLightbox({ src, alt, isOpen, onClose }: ImageLightboxProps) {
+  useBackButtonClose(isOpen, onClose);
+
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';

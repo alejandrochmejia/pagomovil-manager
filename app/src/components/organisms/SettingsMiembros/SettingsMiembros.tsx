@@ -75,6 +75,7 @@ export default function SettingsMiembros() {
 
   async function handleChangeRole(miembroId: number, newRol: string) {
     if (!empresaId) return;
+    setError('');
     try {
       await api(`/empresas/${empresaId}/miembros/${miembroId}/rol`, {
         method: 'PUT',
@@ -84,7 +85,7 @@ export default function SettingsMiembros() {
         prev.map((m) => (m.id === miembroId ? { ...m, rol: newRol as Rol } : m)),
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al cambiar rol');
+      setError(err instanceof Error ? err.message : 'Error al cambiar rol');
     }
   }
 
@@ -113,6 +114,8 @@ export default function SettingsMiembros() {
             <IconUserPlus size={14} stroke={2} /> Invitar
           </Button>
         </div>
+
+        {!showInvite && error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.list}>
           {miembros.map((m) => (
