@@ -93,6 +93,7 @@
 }
 
 html {
+  height: 100%;
   font-family: var(--font-sans);
   font-size: 16px;
   color: var(--color-text);
@@ -112,9 +113,12 @@ html[data-font-size='large'] {
 }
 
 body {
-  min-height: 100dvh;
-  min-height: 100vh;
+  height: 100%;
   overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
 }
 
 .page {

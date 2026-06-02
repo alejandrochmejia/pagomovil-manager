@@ -1,14 +1,16 @@
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .app-content {
   flex: 1;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
