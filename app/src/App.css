@@ -9,6 +9,7 @@
   flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
 }

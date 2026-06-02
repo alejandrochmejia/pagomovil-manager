@@ -100,6 +100,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
 }
 
 html[data-font-size='small'] {
@@ -113,6 +114,7 @@ html[data-font-size='large'] {
 body {
   min-height: 100dvh;
   min-height: 100vh;
+  overscroll-behavior: none;
 }
 
 .page {
