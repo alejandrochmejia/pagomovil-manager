@@ -102,6 +102,14 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+html[data-font-size='small'] {
+  font-size: 14px;
+}
+
+html[data-font-size='large'] {
+  font-size: 18px;
+}
+
 body {
   min-height: 100dvh;
   min-height: 100vh;
