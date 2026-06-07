@@ -6,6 +6,8 @@ import Input from '@/components/atoms/Input/Input';
 import Button from '@/components/atoms/Button/Button';
 import Card from '@/components/atoms/Card/Card';
 import Spinner from '@/components/atoms/Spinner/Spinner';
+import PasswordStrengthMeter from '@/components/molecules/PasswordStrengthMeter/PasswordStrengthMeter';
+import { evaluatePassword } from '@/utils/passwordStrength';
 import styles from './Auth.module.css';
 
 export default function RegisterPage() {
@@ -14,8 +16,20 @@ export default function RegisterPage() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const strength = evaluatePassword(password);
+  const passwordsMatch = passwordConfirm === password;
+  const showConfirmError = passwordConfirm.length > 0 && !passwordsMatch;
+  const canSubmit =
+    !loading &&
+    nombre.trim().length > 0 &&
+    email.length > 0 &&
+    strength.meetsRequirements &&
+    passwordsMatch &&
+    passwordConfirm.length > 0;
 
   async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
@@ -28,8 +42,12 @@ export default function RegisterPage() {
       setError('Ingresa tu email');
       return;
     }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (!strength.meetsRequirements) {
+      setError('La contraseña no cumple los requisitos mínimos de seguridad');
+      return;
+    }
+    if (!passwordsMatch) {
+      setError('Las contraseñas no coinciden');
       return;
     }
     setLoading(true);
@@ -75,11 +93,21 @@ export default function RegisterPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Mínimo 8 caracteres seguros"
           autoComplete="new-password"
         />
+        <PasswordStrengthMeter password={password} />
+        <Input
+          label="Confirmar contraseña"
+          type="password"
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
+          placeholder="Repite tu contraseña"
+          autoComplete="new-password"
+          error={showConfirmError ? 'Las contraseñas no coinciden' : undefined}
+        />
 
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={!canSubmit}>
           <span className={styles.btnContent}>
             {loading ? <Spinner size="sm" /> : <IconUserPlus size={18} stroke={1.5} />}
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}

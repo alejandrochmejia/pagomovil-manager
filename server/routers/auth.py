@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -5,6 +7,21 @@ from config import supabase
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_PWD_MIN_LEN = 8
+_PWD_MIN_CATEGORIES = 3
+
+
+def _password_meets_policy(pw: str) -> bool:
+    if len(pw) < _PWD_MIN_LEN:
+        return False
+    categories = sum([
+        bool(re.search(r"[a-z]", pw)),
+        bool(re.search(r"[A-Z]", pw)),
+        bool(re.search(r"\d", pw)),
+        bool(re.search(r"[^A-Za-z0-9]", pw)),
+    ])
+    return categories >= _PWD_MIN_CATEGORIES
 
 
 class RegisterRequest(BaseModel):
@@ -28,6 +45,11 @@ class UpdatePasswordRequest(BaseModel):
 
 @router.post("/register")
 async def register(req: RegisterRequest):
+    if not _password_meets_policy(req.password):
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña debe tener al menos 8 caracteres y combinar 3 de: minúsculas, mayúsculas, números, símbolos",
+        )
     try:
         res = supabase.auth.sign_up({
             "email": req.email,
