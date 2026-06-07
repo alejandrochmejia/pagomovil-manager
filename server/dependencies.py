@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, Request
 
-from config import supabase
+from config import supabase, SUPABASE_KEY
 
 
 def get_current_user(request: Request) -> dict:
@@ -12,6 +12,11 @@ def get_current_user(request: Request) -> dict:
     token = auth.removeprefix("Bearer ")
     try:
         res = supabase.auth.get_user(token)
+        # supabase.auth.get_user() deja el cliente PostgREST autenticado con el
+        # JWT del usuario (rol "authenticated"). Como ese rol tiene revocados los
+        # permisos de tabla, restauramos la service_role key para que las queries
+        # posteriores del backend sigan operando con permisos completos.
+        supabase.postgrest.auth(SUPABASE_KEY)
         return {
             "id": res.user.id,
             "email": res.user.email,
