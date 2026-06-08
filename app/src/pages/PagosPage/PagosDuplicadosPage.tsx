@@ -18,13 +18,17 @@ export default function PagosDuplicadosPage() {
   const perms = usePermissions();
   const [groups, setGroups] = useState<DuplicadoGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [deleting, setDeleting] = useState<Pago | undefined>();
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await getDuplicados();
       setGroups(data);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -63,7 +67,16 @@ export default function PagosDuplicadosPage() {
         </div>
       )}
 
-      {!loading && groups.length === 0 && (
+      {!loading && error && (
+        <EmptyState
+          icon={<IconAlertTriangle size={48} stroke={1.5} />}
+          title="No se pudieron cargar los duplicados"
+          description="Revisa tu conexión e intenta de nuevo."
+          action={<Button onClick={load}>Reintentar</Button>}
+        />
+      )}
+
+      {!loading && !error && groups.length === 0 && (
         <EmptyState
           icon={<IconShieldCheck size={48} stroke={1.5} />}
           title="Sin duplicados"

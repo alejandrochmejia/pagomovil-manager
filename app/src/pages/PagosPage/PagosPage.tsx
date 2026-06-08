@@ -11,7 +11,7 @@ import {
   ESTADO_LABELS,
   type EstadoPago,
 } from '@/utils/constants';
-import { IconCoin, IconArrowsExchange, IconX, IconFilter } from '@tabler/icons-react';
+import { IconCoin, IconArrowsExchange, IconX, IconFilter, IconAlertTriangle } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Select from '@/components/atoms/Select/Select';
@@ -77,6 +77,7 @@ export default function PagosPage() {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [version, setVersion] = useState(0);
   const [showUsd, setShowUsd] = useState(false);
   const [rates, setRates] = useState<Record<string, number>>({});
@@ -133,6 +134,7 @@ export default function PagosPage() {
 
   useEffect(() => {
     setLoading(true);
+    setError(false);
     getPagosByDateRange(range, 1, PAGE_SIZE, debouncedSearch, filterOpts)
       .then((res) => {
         setPagos(res.items);
@@ -140,6 +142,7 @@ export default function PagosPage() {
         setHasMore(res.has_more);
         setPage(1);
       })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [range, debouncedSearch, version, filterOpts]);
 
@@ -152,6 +155,8 @@ export default function PagosPage() {
       setPagos((prev) => [...prev, ...res.items]);
       setHasMore(res.has_more);
       setPage(next);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -311,7 +316,14 @@ export default function PagosPage() {
         )}
       </div>
 
-      {pagos.length === 0 && !loading && (
+      {error && !loading && pagos.length === 0 ? (
+        <EmptyState
+          icon={<IconAlertTriangle size={48} stroke={1.5} />}
+          title="No se pudieron cargar los pagos"
+          description="Revisa tu conexión e intenta de nuevo."
+          action={<Button onClick={reload}>Reintentar</Button>}
+        />
+      ) : pagos.length === 0 && !loading ? (
         <EmptyState
           icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin pagos"
@@ -322,7 +334,7 @@ export default function PagosPage() {
             ) : undefined
           }
         />
-      )}
+      ) : null}
 
       <div className={styles.list}>
         {pagos.map((pago) => (

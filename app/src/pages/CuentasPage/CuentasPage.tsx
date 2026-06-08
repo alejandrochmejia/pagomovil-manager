@@ -7,7 +7,7 @@ import {
 } from '@/services/cuenta.service';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { CuentaReceptora } from '@/types/pago';
-import { IconUser } from '@tabler/icons-react';
+import { IconUser, IconAlertTriangle } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
@@ -27,6 +27,7 @@ export default function CuentasPage() {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CuentaReceptora | undefined>();
@@ -37,6 +38,7 @@ export default function CuentasPage() {
 
   useEffect(() => {
     setLoading(true);
+    setError(false);
     getCuentasPaginated(1, PAGE_SIZE, search)
       .then((res) => {
         setCuentas(res.items);
@@ -44,6 +46,7 @@ export default function CuentasPage() {
         setHasMore(res.has_more);
         setPage(1);
       })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [search, version]);
 
@@ -56,6 +59,8 @@ export default function CuentasPage() {
       setCuentas((prev) => [...prev, ...res.items]);
       setHasMore(res.has_more);
       setPage(next);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -101,7 +106,14 @@ export default function CuentasPage() {
         />
       </div>
 
-      {cuentas.length === 0 && !loading && (
+      {error && !loading && cuentas.length === 0 ? (
+        <EmptyState
+          icon={<IconAlertTriangle size={48} stroke={1.5} />}
+          title="No se pudieron cargar las cuentas"
+          description="Revisa tu conexión e intenta de nuevo."
+          action={<Button onClick={reload}>Reintentar</Button>}
+        />
+      ) : cuentas.length === 0 && !loading ? (
         <EmptyState
           icon={<IconUser size={48} stroke={1.5} />}
           title="Sin cuentas"
@@ -118,7 +130,7 @@ export default function CuentasPage() {
             ) : undefined
           }
         />
-      )}
+      ) : null}
 
       <div className={styles.list}>
         {cuentas.map((cuenta) => (

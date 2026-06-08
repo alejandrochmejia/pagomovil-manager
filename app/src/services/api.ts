@@ -1,4 +1,4 @@
-import { getToken, getEmpresaId } from './auth.service';
+import { getToken, getEmpresaId, refreshSession, handleSessionExpired } from './auth.service';
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
@@ -17,6 +17,7 @@ function buildHeaders(extra?: HeadersInit, includeJsonContentType = true): Recor
 export async function api<T>(
   path: string,
   options?: RequestInit,
+  isRetry = false,
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -28,6 +29,12 @@ export async function api<T>(
   }
 
   if (res.status === 401) {
+    // Token expirado: intentar renovar una vez y reintentar la request.
+    if (!isRetry) {
+      const newToken = await refreshSession();
+      if (newToken) return api<T>(path, options, true);
+    }
+    handleSessionExpired();
     throw new Error('Sesión expirada');
   }
 
@@ -39,13 +46,18 @@ export async function api<T>(
   return res.json();
 }
 
-export async function apiBlob(path: string, options?: RequestInit): Promise<Blob> {
+export async function apiBlob(path: string, options?: RequestInit, isRetry = false): Promise<Blob> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: buildHeaders(options?.headers, false),
   });
 
   if (res.status === 401) {
+    if (!isRetry) {
+      const newToken = await refreshSession();
+      if (newToken) return apiBlob(path, options, true);
+    }
+    handleSessionExpired();
     throw new Error('Sesión expirada');
   }
 

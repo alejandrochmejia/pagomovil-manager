@@ -8,6 +8,8 @@ import {
   setEmpresaId as storeEmpresaId,
   clearSession,
   saveSession,
+  refreshSession,
+  setOnSessionExpired,
   login as loginApi,
   register as registerApi,
 } from '@/services/auth.service';
@@ -26,7 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const data = await getMe(token);
+      let data;
+      try {
+        data = await getMe(token);
+      } catch {
+        // El access token pudo expirar: intentar renovar y reintentar una vez.
+        const newToken = await refreshSession();
+        if (!newToken) throw new Error('Sesión no recuperable');
+        data = await getMe(newToken);
+      }
       setUser(data.user);
       setEmpresas(data.empresas);
 
@@ -50,6 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
   }, [loadUser]);
 
+  // Cuando una request falla con 401 sin remedio, el handler limpia el estado
+  // y ProtectedRoute redirige al login.
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      setUser(null);
+      setEmpresas([]);
+      setEmpresaId(null);
+    });
+    return () => setOnSessionExpired(null);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const res = await loginApi(email, password);
     saveSession(res.session);
@@ -71,11 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Usar sesion del registro si existe, sino hacer login
     let token = regRes.session?.access_token;
+    let refreshTok = regRes.session?.refresh_token ?? '';
     let userInfo = regRes.user;
 
     if (!token) {
       const loginRes = await loginApi(email, password);
       token = loginRes.session.access_token;
+      refreshTok = loginRes.session.refresh_token;
       userInfo = loginRes.user;
     }
 
@@ -83,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('No se pudo iniciar sesión automáticamente');
     }
 
-    saveSession({ access_token: token, refresh_token: '' });
+    saveSession({ access_token: token, refresh_token: refreshTok });
     setUser(userInfo);
     setEmpresas([]);
     setLoading(false);

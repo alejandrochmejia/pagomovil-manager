@@ -1,0 +1,45 @@
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl, 2rem) var(--space-md, 1rem);
+  text-align: center;
+  gap: var(--space-sm, 0.75rem);
+  color: var(--color-text, #1a1a1a);
+}
+
+.icon {
+  color: var(--color-danger, #dc2626);
+  line-height: 1;
+}
+
+.title {
+  font-size: var(--text-lg, 1.25rem);
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+}
+
+.description {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-muted, #6b7280);
+  max-width: 280px;
+}
+
+.button {
+  margin-top: var(--space-md, 1rem);
+  padding: 0.625rem 1.5rem;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary, #2563eb);
+  border: none;
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: pointer;
+}
+
+.button:active {
+  opacity: 0.85;
+}

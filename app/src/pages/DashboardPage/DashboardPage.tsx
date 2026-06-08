@@ -11,10 +11,13 @@ import {
   IconSettings,
   IconShieldCheck,
   IconArrowsExchange,
+  IconAlertTriangle,
 } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import SectionTabs from '@/components/atoms/SectionTabs/SectionTabs';
 import Spinner from '@/components/atoms/Spinner/Spinner';
+import EmptyState from '@/components/atoms/EmptyState/EmptyState';
+import Button from '@/components/atoms/Button/Button';
 import DashboardResumen from '@/components/organisms/DashboardResumen/DashboardResumen';
 import DashboardFinanzas from '@/components/organisms/DashboardFinanzas/DashboardFinanzas';
 import DashboardBancos from '@/components/organisms/DashboardBancos/DashboardBancos';
@@ -53,6 +56,8 @@ export default function DashboardPage() {
     range,
     setRange,
     loading,
+    error,
+    refresh,
   } = useDashboardStats(section);
 
   const { rate, loading: rateLoading, error: rateError, refresh: refreshRate } = useBcvRate();
@@ -82,7 +87,19 @@ export default function DashboardPage() {
     );
   }
 
-  if (!summary) return null;
+  if (!summary) {
+    return (
+      <div className="page">
+        <AppHeader title="Dashboard" />
+        <EmptyState
+          icon={<IconAlertTriangle size={48} stroke={1.5} />}
+          title={error ? 'No se pudieron cargar las estadísticas' : 'Sin datos'}
+          description={error ? 'Revisa tu conexión e intenta de nuevo.' : 'Aún no hay información para mostrar.'}
+          action={error ? <Button onClick={refresh}>Reintentar</Button> : undefined}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="page">

@@ -88,3 +88,54 @@ export function clearSession() {
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(EMPRESA_KEY);
 }
+
+// --- Refresh de sesión ---
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
+  const refresh_token = localStorage.getItem(REFRESH_KEY);
+  if (!refresh_token) return null;
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { access_token: string; refresh_token: string };
+    saveSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Intenta renovar el access_token con el refresh_token almacenado.
+ * Deduplica llamadas concurrentes (varias requests con 401 a la vez comparten
+ * el mismo refresh). Devuelve el nuevo access_token o null si no se pudo.
+ */
+export function refreshSession(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+// --- Notificación de sesión expirada ---
+
+let onSessionExpired: (() => void) | null = null;
+
+/** Registra el callback que se invoca cuando la sesión expira sin remedio. */
+export function setOnSessionExpired(fn: (() => void) | null) {
+  onSessionExpired = fn;
+}
+
+/** Limpia la sesión y notifica al provider para redirigir al login. */
+export function handleSessionExpired() {
+  clearSession();
+  onSessionExpired?.();
+}

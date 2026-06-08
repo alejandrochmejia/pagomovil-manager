@@ -52,13 +52,17 @@ export function useDashboardStats(section: KpiSection) {
     () => peekStats<StatsMonthly[]>(monthlyKey(eid)) ?? [],
   );
   const [loading, setLoading] = useState(() => !peekStats<StatsSummary>(summaryKey(eid)));
+  const [error, setError] = useState(false);
 
   const loadSummary = useCallback(async () => {
     const key = summaryKey(eid);
     if (!peekStats<StatsSummary>(key)) setLoading(true);
+    setError(false);
     try {
       const s = await fetchStats(key, getStatsSummary, { persist: true });
       setSummary(s);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -76,8 +80,8 @@ export function useDashboardStats(section: KpiSection) {
       const cachedMonthly = peekStats<StatsMonthly[]>(kM);
       if (cachedExtra) setExtra(cachedExtra);
       if (cachedMonthly) setMonthly(cachedMonthly);
-      fetchStats(kE, getStatsExtra, { persist: true }).then(setExtra);
-      fetchStats(kM, getStatsMonthly, { persist: true }).then(setMonthly);
+      fetchStats(kE, getStatsExtra, { persist: true }).then(setExtra).catch(() => setError(true));
+      fetchStats(kM, getStatsMonthly, { persist: true }).then(setMonthly).catch(() => setError(true));
     } else if (section === 'finanzas') {
       const kDia = breakdownKey('dia', eid, range);
       const kHora = breakdownKey('hora', eid, range);
@@ -85,18 +89,18 @@ export function useDashboardStats(section: KpiSection) {
       const cachedHora = peekStats<StatsBreakdown[]>(kHora);
       if (cachedDia) setBreakdownDia(cachedDia);
       if (cachedHora) setBreakdownHora(cachedHora);
-      fetchStats(kDia, () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia);
-      fetchStats(kHora, () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora);
+      fetchStats(kDia, () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia).catch(() => setError(true));
+      fetchStats(kHora, () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora).catch(() => setError(true));
     } else if (section === 'bancos') {
       const k = breakdownKey('banco', eid, range);
       const cached = peekStats<StatsBreakdown[]>(k);
       if (cached) setBreakdownBanco(cached);
-      fetchStats(k, () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco);
+      fetchStats(k, () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco).catch(() => setError(true));
     } else if (section === 'operaciones') {
       const k = scansKey(eid);
       const cached = peekStats<ScanStats>(k);
       if (cached) setScanStats(cached);
-      fetchStats(k, getScanStats, { persist: true }).then(setScanStats);
+      fetchStats(k, getScanStats, { persist: true }).then(setScanStats).catch(() => setError(true));
     }
   }, [section, range, eid]);
 
@@ -130,6 +134,7 @@ export function useDashboardStats(section: KpiSection) {
     range,
     setRange,
     loading,
+    error,
     refresh,
   } as const;
 }

@@ -35,6 +35,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 class ResetPasswordRequest(BaseModel):
     email: str
 
@@ -95,9 +99,9 @@ async def login(req: LoginRequest):
 
 
 @router.post("/refresh")
-async def refresh_token(refresh_token: str):
+async def refresh_token(req: RefreshRequest):
     try:
-        res = supabase_auth.auth.refresh_session(refresh_token)
+        res = supabase_auth.auth.refresh_session(req.refresh_token)
         return {
             "access_token": res.session.access_token,
             "refresh_token": res.session.refresh_token,

@@ -5,7 +5,7 @@ import { getDefaultDateRange } from '@/services/stats.service';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { Pago } from '@/types/pago';
 import type { DateRange } from '@/types/common';
-import { IconCoin, IconArrowLeft } from '@tabler/icons-react';
+import { IconCoin, IconArrowLeft, IconAlertTriangle } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
@@ -28,6 +28,10 @@ export default function PagosSinComprobantePage() {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [version, setVersion] = useState(0);
+
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
@@ -36,6 +40,7 @@ export default function PagosSinComprobantePage() {
 
   useEffect(() => {
     setLoading(true);
+    setError(false);
     getPagosByDateRange(range, 1, PAGE_SIZE, debouncedSearch, { sinComprobante: true })
       .then((res) => {
         setPagos(res.items);
@@ -43,8 +48,9 @@ export default function PagosSinComprobantePage() {
         setHasMore(res.has_more);
         setPage(1);
       })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [range, debouncedSearch]);
+  }, [range, debouncedSearch, version]);
 
   async function loadMore() {
     if (loading || !hasMore) return;
@@ -57,6 +63,8 @@ export default function PagosSinComprobantePage() {
       setPagos((prev) => [...prev, ...res.items]);
       setHasMore(res.has_more);
       setPage(next);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -89,7 +97,14 @@ export default function PagosSinComprobantePage() {
         )}
       </div>
 
-      {pagos.length === 0 && !loading && (
+      {error && !loading && pagos.length === 0 ? (
+        <EmptyState
+          icon={<IconAlertTriangle size={48} stroke={1.5} />}
+          title="No se pudieron cargar los pagos"
+          description="Revisa tu conexión e intenta de nuevo."
+          action={<Button onClick={reload}>Reintentar</Button>}
+        />
+      ) : pagos.length === 0 && !loading ? (
         <EmptyState
           icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin resultados"
@@ -99,7 +114,7 @@ export default function PagosSinComprobantePage() {
               : 'Todos los pagos del rango tienen comprobante'
           }
         />
-      )}
+      ) : null}
 
       <div className={styles.list}>
         {pagos.map((pago) => (
