@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, type FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
@@ -37,6 +37,7 @@ export default function SettingsMiembros() {
   const [invRol, setInvRol] = useState('cajero');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const inFlight = useRef(new Set<string>());
 
   const rolOptions = useMemo(
     () => ASSIGNABLE_ROLES
@@ -75,6 +76,9 @@ export default function SettingsMiembros() {
 
   async function handleChangeRole(miembroId: number, newRol: string) {
     if (!empresaId) return;
+    const key = `role-${miembroId}`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
     setError('');
     try {
       await api(`/empresas/${empresaId}/miembros/${miembroId}/rol`, {
@@ -86,19 +90,35 @@ export default function SettingsMiembros() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cambiar rol');
+    } finally {
+      inFlight.current.delete(key);
     }
   }
 
   async function handleCancelInvite(invId: number) {
     if (!empresaId) return;
-    await api(`/empresas/${empresaId}/invitaciones/${invId}`, { method: 'DELETE' });
-    setInvitaciones((prev) => prev.filter((i) => i.id !== invId));
+    const key = `inv-${invId}`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    try {
+      await api(`/empresas/${empresaId}/invitaciones/${invId}`, { method: 'DELETE' });
+      setInvitaciones((prev) => prev.filter((i) => i.id !== invId));
+    } finally {
+      inFlight.current.delete(key);
+    }
   }
 
   async function handleRemoveMember(miembroId: number) {
     if (!empresaId) return;
-    await api(`/empresas/${empresaId}/miembros/${miembroId}`, { method: 'DELETE' });
-    setMiembros((prev) => prev.filter((m) => m.id !== miembroId));
+    const key = `mem-${miembroId}`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    try {
+      await api(`/empresas/${empresaId}/miembros/${miembroId}`, { method: 'DELETE' });
+      setMiembros((prev) => prev.filter((m) => m.id !== miembroId));
+    } finally {
+      inFlight.current.delete(key);
+    }
   }
 
   if (!empresaId) {

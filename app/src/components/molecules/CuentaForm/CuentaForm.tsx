@@ -11,7 +11,7 @@ const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
 
 interface CuentaFormProps {
   initial?: CuentaReceptora;
-  onSubmit: (data: Omit<CuentaReceptora, 'id' | 'creado_en'>) => void;
+  onSubmit: (data: Omit<CuentaReceptora, 'id' | 'creado_en'>) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -27,6 +27,7 @@ export default function CuentaForm({ initial, onSubmit, onCancel }: CuentaFormPr
   const [telefono, setTelefono] = useState(initial?.telefono ?? '');
   const [activa, setActiva] = useState(initial?.activa ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -39,16 +40,22 @@ export default function CuentaForm({ initial, onSubmit, onCancel }: CuentaFormPr
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(ev: FormEvent) {
+  async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
+    if (submitting) return;
     if (!validate()) return;
-    onSubmit({
-      nombre: nombre.trim(),
-      banco,
-      cedula: `${tipoCedula}-${cedula}`,
-      telefono,
-      activa,
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        nombre: nombre.trim(),
+        banco,
+        cedula: `${tipoCedula}-${cedula}`,
+        telefono,
+        activa,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -101,11 +108,11 @@ export default function CuentaForm({ initial, onSubmit, onCancel }: CuentaFormPr
         <span>Cuenta activa</span>
       </label>
       <div className={styles.actions}>
-        <Button variant="secondary" type="button" onClick={onCancel}>
+        <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
           Cancelar
         </Button>
-        <Button type="submit">
-          {initial ? 'Guardar' : 'Crear cuenta'}
+        <Button type="submit" disabled={submitting}>
+          {submitting ? 'Guardando...' : (initial ? 'Guardar' : 'Crear cuenta')}
         </Button>
       </div>
     </form>

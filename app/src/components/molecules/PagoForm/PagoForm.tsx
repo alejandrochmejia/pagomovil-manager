@@ -13,7 +13,7 @@ const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
 
 interface PagoFormProps {
   initial?: Partial<Pago>;
-  onSubmit: (data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) => void;
+  onSubmit: (data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) => void | Promise<void>;
   onCancel: () => void;
   submitLabel?: string;
 }
@@ -39,6 +39,7 @@ export default function PagoForm({
   const [concepto, setConcepto] = useState(initial?.concepto ?? '');
   const [cuentaId, setCuentaId] = useState(initial?.cuenta_receptora_id?.toString() ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
   const { cuentas } = useCuentas();
 
   function validate(): boolean {
@@ -53,20 +54,26 @@ export default function PagoForm({
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(ev: FormEvent) {
+  async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
+    if (submitting) return;
     if (!validate()) return;
-    onSubmit({
-      monto: Number(monto),
-      banco,
-      cedula: `${tipoCedula}-${cedula}`,
-      telefono: telefono || undefined,
-      referencia,
-      fecha,
-      hora: hora || undefined,
-      concepto: concepto || undefined,
-      cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        monto: Number(monto),
+        banco,
+        cedula: `${tipoCedula}-${cedula}`,
+        telefono: telefono || undefined,
+        referencia,
+        fecha,
+        hora: hora || undefined,
+        concepto: concepto || undefined,
+        cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -155,10 +162,12 @@ export default function PagoForm({
         placeholder="Descripción del pago"
       />
       <div className={styles.actions}>
-        <Button variant="secondary" type="button" onClick={onCancel}>
+        <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
           Cancelar
         </Button>
-        <Button type="submit">{submitLabel ?? (initial?.id ? 'Guardar' : 'Registrar')}</Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? 'Guardando...' : (submitLabel ?? (initial?.id ? 'Guardar' : 'Registrar'))}
+        </Button>
       </div>
     </form>
   );

@@ -24,7 +24,7 @@ import styles from './ScanPreview.module.css';
 interface ScanPreviewProps {
   imageBase64: string;
   scanResult: ScanResponse;
-  onConfirm: (data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) => void;
+  onConfirm: (data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -48,6 +48,7 @@ export default function ScanPreview({
   const [pendingSubmit, setPendingSubmit] = useState<
     Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'> | null
   >(null);
+  const [submitting, setSubmitting] = useState(false);
   const { cuentas, refresh } = useCuentas();
 
   const receptor: ScanReceptor = useMemo(
@@ -137,8 +138,19 @@ export default function ScanPreview({
     };
   }
 
-  function handleSubmit(ev: FormEvent) {
+  async function runConfirm(data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onConfirm(data);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
+    if (submitting) return;
     const e: Record<string, string> = {};
     const montoNum = Number(monto);
     if (!monto || isNaN(montoNum) || montoNum <= 0) e.monto = 'Monto inválido';
@@ -153,13 +165,14 @@ export default function ScanPreview({
       setShowDupConfirm(true);
       return;
     }
-    onConfirm(data);
+    await runConfirm(data);
   }
 
-  function confirmDuplicateSubmit() {
-    if (pendingSubmit) onConfirm(pendingSubmit);
+  async function confirmDuplicateSubmit() {
+    const data = pendingSubmit;
     setShowDupConfirm(false);
     setPendingSubmit(null);
+    if (data) await runConfirm(data);
   }
 
   return (
@@ -305,10 +318,12 @@ export default function ScanPreview({
         )}
 
         <div className={styles.actions}>
-          <Button variant="secondary" type="button" onClick={onCancel}>
+          <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
             Cancelar
           </Button>
-          <Button type="submit">Guardar pago</Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? 'Guardando...' : 'Guardar pago'}
+          </Button>
         </div>
       </form>
 
