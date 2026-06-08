@@ -1,14 +1,16 @@
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
-export async function captureReceipt(): Promise<string> {
+export type CaptureSource = 'camera' | 'gallery';
+
+export async function captureReceipt(source: CaptureSource = 'camera'): Promise<string> {
   if (Capacitor.getPlatform() === 'web') {
-    return captureWeb();
+    return captureWeb(source === 'camera');
   }
 
   const photo = await Camera.getPhoto({
     resultType: CameraResultType.Base64,
-    source: CameraSource.Camera,
+    source: source === 'gallery' ? CameraSource.Photos : CameraSource.Camera,
     quality: 85,
     width: 1200,
     allowEditing: false,
@@ -21,12 +23,14 @@ export async function captureReceipt(): Promise<string> {
   return photo.base64String;
 }
 
-function captureWeb(): Promise<string> {
+function captureWeb(useCapture: boolean): Promise<string> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment';
+    // En cámara forzamos la cámara trasera; en galería se omite para abrir el
+    // selector de archivos/galería del dispositivo.
+    if (useCapture) input.capture = 'environment';
     input.style.position = 'fixed';
     input.style.left = '-9999px';
     document.body.appendChild(input);

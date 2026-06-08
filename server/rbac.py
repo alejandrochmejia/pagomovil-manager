@@ -21,6 +21,7 @@ PERMISSIONS: dict[str, set[str]] = {
     "config_sistema":       {"dueno", "admin"},
     "audit_log":            {"dueno", "admin", "contador"},
     "autorizar_duplicados": {"dueno", "admin", "supervisor"},
+    "resolver_no_coincidente": {"dueno", "admin", "supervisor"},
 }
 
 # Roles que cada actor puede asignar

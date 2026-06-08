@@ -80,8 +80,15 @@ export async function deletePago(id: number): Promise<void> {
   invalidateStats();
 }
 
+export async function resolverNoCoincidente(id: number): Promise<Pago> {
+  const result = await api<Pago>(`/pagos/${id}/resolver-no-coincidente`, { method: 'POST' });
+  invalidateStats();
+  return result;
+}
+
 export interface PagosListFilters {
   sinComprobante?: boolean;
+  noCoincidentes?: boolean;
   estado?: string;
   duplicados?: boolean;
   editados?: boolean;
@@ -102,6 +109,7 @@ export async function getPagosByDateRange(
   });
   if (search.trim()) params.set('q', search.trim());
   if (opts.sinComprobante) params.set('sin_comprobante', 'true');
+  if (opts.noCoincidentes) params.set('no_coincidentes', 'true');
   if (opts.estado) params.set('estado', opts.estado);
   if (opts.duplicados) params.set('duplicados', 'true');
   if (opts.editados) params.set('editados', 'true');

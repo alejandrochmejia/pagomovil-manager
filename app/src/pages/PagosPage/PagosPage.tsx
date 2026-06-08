@@ -1,24 +1,29 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getPagosByDateRange, createPago, updatePago, deletePago } from '@/services/pago.service';
+import { getPagosByDateRange, createPago, updatePago, deletePago, resolverNoCoincidente } from '@/services/pago.service';
 import { getDefaultDateRange } from '@/services/stats.service';
 import { getBcvRatesByRange } from '@/services/bcv.service';
+import { captureReceipt, type CaptureSource } from '@/services/camera.service';
+import { scanReceipt } from '@/services/scan.service';
 import { useBcvRate } from '@/hooks/useBcvRate';
 import { usePermissions } from '@/hooks/usePermissions';
+import { compareScanToPago, describeMismatch } from '@/utils/compareScan';
 import type { Pago } from '@/types/pago';
-import type { DateRange } from '@/types/common';
+import type { DateRange, ScanResponse } from '@/types/common';
 import {
   ESTADO_LABELS,
   type EstadoPago,
 } from '@/utils/constants';
-import { IconCoin, IconArrowsExchange, IconX, IconFilter, IconAlertTriangle } from '@tabler/icons-react';
+import { IconCoin, IconArrowsExchange, IconX, IconFilter, IconAlertTriangle, IconCamera, IconPhoto } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Select from '@/components/atoms/Select/Select';
 import Modal from '@/components/atoms/Modal/Modal';
+import Spinner from '@/components/atoms/Spinner/Spinner';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
 import PagoCard from '@/components/molecules/PagoCard/PagoCard';
 import PagoForm from '@/components/molecules/PagoForm/PagoForm';
+import PagoDetail from '@/components/molecules/PagoDetail/PagoDetail';
 import SearchBar from '@/components/molecules/SearchBar/SearchBar';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
@@ -32,6 +37,7 @@ interface ActiveFilters {
   duplicados: boolean;
   editados: boolean;
   sinComprobante: boolean;
+  noCoincidentes: boolean;
 }
 
 function readFiltersFromSearch(sp: URLSearchParams): ActiveFilters {
@@ -42,6 +48,7 @@ function readFiltersFromSearch(sp: URLSearchParams): ActiveFilters {
     duplicados: sp.get('duplicados') === 'true',
     editados: sp.get('editados') === 'true',
     sinComprobante: sp.get('sin_comprobante') === 'true',
+    noCoincidentes: sp.get('no_coincidentes') === 'true',
   };
 }
 
@@ -51,7 +58,13 @@ function activeFilterCount(f: ActiveFilters): number {
   if (f.duplicados) n++;
   if (f.editados) n++;
   if (f.sinComprobante) n++;
+  if (f.noCoincidentes) n++;
   return n;
+}
+
+function isViewableImage(uri?: string): boolean {
+  if (!uri) return false;
+  return uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:image/');
 }
 
 const ESTADO_OPTIONS = [
@@ -71,7 +84,14 @@ export default function PagosPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Pago | undefined>();
+  const [viewing, setViewing] = useState<Pago | undefined>();
   const [deleting, setDeleting] = useState<Pago | undefined>();
+  // Comprobante en edición (capturado/subido fuera de PagoForm).
+  const [newImageBase64, setNewImageBase64] = useState('');
+  const [newScanResult, setNewScanResult] = useState<ScanResponse | null>(null);
+  const [scanningComprobante, setScanningComprobante] = useState(false);
+  const [comprobanteError, setComprobanteError] = useState('');
+  const [mismatchCampos, setMismatchCampos] = useState<string[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -126,8 +146,9 @@ export default function PagosPage() {
       duplicados: filters.duplicados,
       editados: filters.editados,
       sinComprobante: filters.sinComprobante,
+      noCoincidentes: filters.noCoincidentes,
     }),
-    [filters.estado, filters.duplicados, filters.editados, filters.sinComprobante],
+    [filters.estado, filters.duplicados, filters.editados, filters.sinComprobante, filters.noCoincidentes],
   );
 
   const activeCount = activeFilterCount(filters);
@@ -162,7 +183,7 @@ export default function PagosPage() {
     }
   }
 
-  function clearFilter(key: 'estado' | 'duplicados' | 'editados' | 'sin_comprobante') {
+  function clearFilter(key: 'estado' | 'duplicados' | 'editados' | 'sin_comprobante' | 'no_coincidentes') {
     const next = new URLSearchParams(searchParams);
     next.delete(key);
     setSearchParams(next, { replace: true });
@@ -187,12 +208,14 @@ export default function PagosPage() {
     else next.delete('editados');
     if (draftFilters.sinComprobante) next.set('sin_comprobante', 'true');
     else next.delete('sin_comprobante');
+    if (draftFilters.noCoincidentes) next.set('no_coincidentes', 'true');
+    else next.delete('no_coincidentes');
     setSearchParams(next, { replace: true });
     setShowFiltersModal(false);
   }
 
   function resetDraftFilters() {
-    setDraftFilters({ duplicados: false, editados: false, sinComprobante: false });
+    setDraftFilters({ duplicados: false, editados: false, sinComprobante: false, noCoincidentes: false });
   }
 
   async function handleChangeEstado(pago: Pago, nuevo: EstadoPago) {
@@ -203,14 +226,70 @@ export default function PagosPage() {
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
 
+  function resetComprobanteState() {
+    setNewImageBase64('');
+    setNewScanResult(null);
+    setScanningComprobante(false);
+    setComprobanteError('');
+    setMismatchCampos([]);
+  }
+
+  function closeEditModal() {
+    setShowForm(false);
+    setEditing(undefined);
+    resetComprobanteState();
+  }
+
+  // Captura/sube un comprobante durante la edición y lo re-analiza con IA.
+  async function handleCaptureComprobante(source: CaptureSource) {
+    setComprobanteError('');
+    let base64: string;
+    try {
+      base64 = await captureReceipt(source);
+    } catch {
+      return; // captura cancelada por el usuario
+    }
+    setNewImageBase64(base64);
+    setNewScanResult(null);
+    setMismatchCampos([]);
+    setScanningComprobante(true);
+    try {
+      const result = await scanReceipt(base64);
+      setNewScanResult(result);
+      if (editing) {
+        const { campos } = compareScanToPago(result, {
+          monto: editing.monto,
+          referencia: editing.referencia,
+          cedula: editing.cedula,
+        });
+        setMismatchCampos(campos);
+      }
+    } catch {
+      setComprobanteError('No se pudo analizar el comprobante. Puedes guardarlo sin análisis o reintentar.');
+    } finally {
+      setScanningComprobante(false);
+    }
+  }
+
   async function handleSubmit(data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) {
     if (editing?.id) {
-      await updatePago(editing.id, data);
+      const extra: Partial<Pago> = {};
+      if (newImageBase64) {
+        extra.imagen_uri = `data:image/jpeg;base64,${newImageBase64}`;
+        if (newScanResult?.scan_log_id) extra.scan_log_id = newScanResult.scan_log_id;
+      }
+      await updatePago(editing.id, { ...data, ...extra });
     } else {
       await createPago(data);
     }
-    setShowForm(false);
-    setEditing(undefined);
+    closeEditModal();
+    reload();
+  }
+
+  async function handleResolve() {
+    if (!viewing?.id) return;
+    const updated = await resolverNoCoincidente(viewing.id);
+    setViewing(updated);
     reload();
   }
 
@@ -309,6 +388,16 @@ export default function PagosPage() {
                 Sin comprobante <IconX size={12} stroke={2} />
               </button>
             )}
+            {filters.noCoincidentes && (
+              <button
+                type="button"
+                className={styles.chip}
+                onClick={() => clearFilter('no_coincidentes')}
+                aria-label="Quitar filtro no coincidentes"
+              >
+                No coincidentes <IconX size={12} stroke={2} />
+              </button>
+            )}
             <button type="button" className={styles.chipClear} onClick={clearAllFilters}>
               Limpiar todo
             </button>
@@ -343,7 +432,7 @@ export default function PagosPage() {
             pago={pago}
             showUsd={showUsd}
             rateForDate={ratesByDate[pago.fecha]}
-            onClick={perms.canEditPago ? () => { setEditing(pago); setShowForm(true); } : undefined}
+            onClick={() => setViewing(pago)}
             onDelete={perms.canDeletePago ? () => setDeleting(pago) : undefined}
             onChangeEstado={perms.canEditPago ? (nuevo) => handleChangeEstado(pago, nuevo) : undefined}
           />
@@ -366,16 +455,75 @@ export default function PagosPage() {
       {perms.canCreatePago && (
         <Modal
           isOpen={showForm}
-          onClose={() => { setShowForm(false); setEditing(undefined); }}
+          onClose={closeEditModal}
           title={editing ? 'Editar pago' : 'Nuevo pago'}
         >
+          {editing && perms.canScan && (
+            <div className={styles.comprobanteEdit}>
+              <span className={styles.comprobanteEditTitle}>Comprobante</span>
+              {newImageBase64 ? (
+                <span className={styles.comprobanteOk}>Nuevo comprobante listo para guardar</span>
+              ) : (
+                <span className={styles.comprobanteHint}>
+                  {isViewableImage(editing.imagen_uri) ? 'Hay un comprobante adjunto' : 'Sin comprobante adjunto'}
+                </span>
+              )}
+              <div className={styles.comprobanteEditActions}>
+                <Button size="sm" variant="secondary" type="button" disabled={scanningComprobante}
+                  onClick={() => handleCaptureComprobante('camera')}>
+                  <span className={styles.btnIcon}><IconCamera size={14} stroke={1.8} /> Tomar foto</span>
+                </Button>
+                <Button size="sm" variant="secondary" type="button" disabled={scanningComprobante}
+                  onClick={() => handleCaptureComprobante('gallery')}>
+                  <span className={styles.btnIcon}><IconPhoto size={14} stroke={1.8} /> Galería</span>
+                </Button>
+              </div>
+              {scanningComprobante && (
+                <div className={styles.comprobanteScanning}>
+                  <Spinner size="sm" /><span>Analizando comprobante...</span>
+                </div>
+              )}
+              {comprobanteError && <span className={styles.comprobanteError}>{comprobanteError}</span>}
+              {mismatchCampos.length > 0 && (
+                <div className={styles.comprobanteAlert}>
+                  <IconAlertTriangle size={16} stroke={1.8} />
+                  <span>
+                    El comprobante no coincide en: {describeMismatch(mismatchCampos)}. Puedes guardar
+                    igual; quedará marcado para revisión.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
           <PagoForm
             initial={editing}
             onSubmit={handleSubmit}
-            onCancel={() => { setShowForm(false); setEditing(undefined); }}
+            onCancel={closeEditModal}
           />
         </Modal>
       )}
+
+      <Modal
+        isOpen={!!viewing}
+        onClose={() => setViewing(undefined)}
+        title="Detalle del pago"
+      >
+        {viewing && (
+          <PagoDetail
+            pago={viewing}
+            canEdit={perms.canEditPago}
+            canResolve={perms.canResolverNoCoincidente}
+            rateForDate={ratesByDate[viewing.fecha]}
+            onResolve={handleResolve}
+            onEdit={() => {
+              const p = viewing;
+              setViewing(undefined);
+              setEditing(p);
+              setShowForm(true);
+            }}
+          />
+        )}
+      </Modal>
 
       {perms.canDeletePago && (
         <ConfirmDialog
@@ -437,6 +585,19 @@ export default function PagosPage() {
             <div>
               <span className={styles.toggleLabel}>Solo sin comprobante</span>
               <span className={styles.toggleDesc}>Pagos sin imagen del comprobante</span>
+            </div>
+          </label>
+          <label className={styles.toggleRow}>
+            <input
+              type="checkbox"
+              checked={draftFilters.noCoincidentes}
+              onChange={(e) =>
+                setDraftFilters((d) => ({ ...d, noCoincidentes: e.target.checked }))
+              }
+            />
+            <div>
+              <span className={styles.toggleLabel}>Solo no coincidentes</span>
+              <span className={styles.toggleDesc}>Comprobante no coincide con los datos del pago</span>
             </div>
           </label>
 

@@ -41,7 +41,7 @@ export default function DashboardOperaciones({
           value={summary.sin_comprobante_total}
           description="Pagos sin imagen del comprobante"
           variant={summary.sin_comprobante_total > 0 ? 'warning' : 'success'}
-          onClick={() => navigate('/pagos/sin-comprobante')}
+          onClick={summary.sin_comprobante_total > 0 ? () => navigate('/pagos?sin_comprobante=true') : undefined}
         />
         {scanStats && scanStats.total_scans > 0 && (
           <>

@@ -37,4 +37,8 @@ class PagoUpdate(BaseModel):
     hora: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
     referencia: str | None = Field(default=None, min_length=1, max_length=40)
     concepto: str | None = Field(default=None, max_length=255)
+    cuenta_receptora_id: int | None = Field(default=None, ge=1)
     estado: Estado | None = None
+    imagen_uri: str | None = None
+    scan_log_id: int | None = Field(default=None, ge=1)
+    campos_corregidos: list[str] | None = None

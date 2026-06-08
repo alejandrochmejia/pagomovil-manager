@@ -68,6 +68,7 @@ create table if not exists public.pagos (
   estado               text not null default 'confirmado',
   origen               text not null default 'manual',
   campos_corregidos    text[],
+  comprobante_no_coincidente boolean not null default false,
   empresa_id           bigint
 );
 
@@ -162,6 +163,7 @@ CREATE INDEX IF NOT EXISTS pagos_empresa_idx ON public.pagos USING btree (empres
 CREATE INDEX IF NOT EXISTS pagos_estado_idx ON public.pagos USING btree (estado);
 CREATE INDEX IF NOT EXISTS pagos_fecha_idx ON public.pagos USING btree (fecha);
 CREATE INDEX IF NOT EXISTS pagos_referencia_idx ON public.pagos USING btree (referencia);
+CREATE INDEX IF NOT EXISTS idx_pagos_no_coincidente ON public.pagos USING btree (empresa_id) WHERE comprobante_no_coincidente = true;
 CREATE INDEX IF NOT EXISTS idx_scan_logs_empresa_started ON public.scan_logs USING btree (empresa_id, scan_started_at DESC);
 CREATE INDEX IF NOT EXISTS scan_logs_empresa_id_idx ON public.scan_logs USING btree (empresa_id);
 CREATE INDEX IF NOT EXISTS scan_logs_pago_id_idx ON public.scan_logs USING btree (pago_id);
@@ -336,6 +338,7 @@ BEGIN
     'transacciones_anuladas', (SELECT COUNT(*) FROM pagos WHERE estado = 'anulado' AND empresa_id = p_empresa_id AND actualizado_en >= v_month_start::timestamptz),
     'pendientes_revision', (SELECT COUNT(*) FROM pagos WHERE estado = 'pendiente' AND empresa_id = p_empresa_id),
     'sin_comprobante_total', (SELECT COUNT(*) FROM pagos WHERE empresa_id = p_empresa_id AND (imagen_uri IS NULL OR imagen_uri LIKE 'capacitor://%')),
+    'no_coincidentes_total', (SELECT COUNT(*) FROM pagos WHERE empresa_id = p_empresa_id AND comprobante_no_coincidente = true),
     'meta_mes', (SELECT meta_ingresos FROM metas_mensuales WHERE mes = v_mes_actual AND empresa_id = p_empresa_id)
   ) INTO result;
   RETURN result;

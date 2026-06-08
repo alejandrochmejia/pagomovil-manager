@@ -14,6 +14,7 @@ export interface Pago {
   imagen_uri?: string;
   estado?: string;
   origen?: string;
+  comprobante_no_coincidente?: boolean;
   campos_corregidos?: string[];
   scan_log_id?: number;
   creado_en?: string;

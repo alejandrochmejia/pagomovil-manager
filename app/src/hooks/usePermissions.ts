@@ -18,6 +18,7 @@ export interface Permissions {
   canManageConfig: boolean;
   canSeeAuditLog: boolean;
   canAuthorizeDuplicates: boolean;
+  canResolverNoCoincidente: boolean;
   canChangeRoleTo: (targetRol: Rol) => boolean;
 }
 
@@ -33,6 +34,7 @@ const CAN_MANAGE_USERS = new Set<Rol>(['dueno', 'admin']);
 const CAN_MANAGE_CONFIG = new Set<Rol>(['dueno', 'admin']);
 const CAN_AUDIT = new Set<Rol>(['dueno', 'admin', 'contador']);
 const CAN_AUTH_DUPES = new Set<Rol>(['dueno', 'admin', 'supervisor']);
+const CAN_RESOLVER_NO_COINCIDENTE = new Set<Rol>(['dueno', 'admin', 'supervisor']);
 
 const MANAGEABLE: Record<string, Set<Rol>> = {
   dueno: new Set(['admin', 'supervisor', 'cajero', 'contador']),
@@ -60,6 +62,7 @@ export function usePermissions(): Permissions {
     canManageConfig: CAN_MANAGE_CONFIG.has(rol),
     canSeeAuditLog: CAN_AUDIT.has(rol),
     canAuthorizeDuplicates: CAN_AUTH_DUPES.has(rol),
+    canResolverNoCoincidente: CAN_RESOLVER_NO_COINCIDENTE.has(rol),
     canChangeRoleTo: (targetRol: Rol) => {
       if (targetRol === 'dueno') return false;
       const set = MANAGEABLE[rol];

@@ -17,6 +17,8 @@ class StatsSummary(BaseModel):
     transacciones_editadas: int = 0
     transacciones_anuladas: int = 0
     pendientes_revision: int = 0
+    sin_comprobante_total: int = 0
+    no_coincidentes_total: int = 0
     meta_mes: float | None = None
 
 

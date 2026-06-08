@@ -46,6 +46,13 @@ export default function DashboardRiesgo({ summary }: DashboardRiesgoProps) {
           variant={summary.transacciones_anuladas > 5 ? 'danger' : 'info'}
           onClick={summary.transacciones_anuladas > 0 ? () => navigate('/pagos?estado=anulado') : undefined}
         />
+        <AlertCard
+          title="Comprobante no coincide"
+          value={summary.no_coincidentes_total}
+          description="Comprobante no coincide con los datos del pago"
+          variant={summary.no_coincidentes_total > 0 ? 'danger' : 'success'}
+          onClick={summary.no_coincidentes_total > 0 ? () => navigate('/pagos?no_coincidentes=true') : undefined}
+        />
       </div>
     </KpiSection>
   );

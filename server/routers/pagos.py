@@ -20,6 +20,7 @@ from config import (
 from rbac import require_permission, get_user_with_role
 from schemas.pago import PagoCreate, PagoUpdate
 from services.pdf_export import generate_pagos_pdf
+from services.comprobante_match import compare_scan_to_pago
 
 PDF_MAX_ROWS = 5000
 
@@ -100,6 +101,28 @@ def _sign_comprobantes_in_place(items: list[dict]) -> None:
         key = (entry.get("path") or "").lstrip("/")
         for item in index.get(key, []):
             item["imagen_uri"] = url
+
+
+def _evaluar_coincidencia(empresa_id: int, scan_log_id: int | None, pago_final: dict) -> bool | None:
+    """Compara los datos del pago contra los campos extraídos por IA del scan
+    indicado. Devuelve True/False (no_coincide) o None si no se puede evaluar
+    (sin scan_log o sin datos extraídos) — el caller no debe tocar el flag."""
+    if not scan_log_id:
+        return None
+    res = (
+        supabase.table("scan_logs")
+        .select("campos_extraidos")
+        .eq("id", scan_log_id)
+        .eq("empresa_id", empresa_id)
+        .execute()
+    )
+    if not res.data:
+        return None
+    extraidos = res.data[0].get("campos_extraidos")
+    if not extraidos:
+        return None
+    no_coincide, _ = compare_scan_to_pago(extraidos, pago_final)
+    return no_coincide
 
 EXPORT_PAGE_SIZE = 500
 EXPORT_COLUMNS = [
@@ -245,6 +268,7 @@ async def list_pagos(
     hasta: str | None = Query(None),
     q: str | None = Query(None),
     sin_comprobante: bool = Query(False),
+    no_coincidentes: bool = Query(False),
     estado: str | None = Query(None),
     duplicados: bool = Query(False),
     editados: bool = Query(False),
@@ -279,6 +303,8 @@ async def list_pagos(
     query = _apply_filters(query, desde, hasta, q)
     if sin_comprobante:
         query = query.or_("imagen_uri.is.null,imagen_uri.like.capacitor://*")
+    if no_coincidentes:
+        query = query.eq("comprobante_no_coincidente", True)
     if estado and estado in _ESTADOS_VALIDOS:
         query = query.eq("estado", estado)
     if restricted_ids is not None:
@@ -485,6 +511,10 @@ async def create_pago(
         except Exception as e:
             logger.warning("Fallo al subir comprobante (empresa %s): %s", empresa_id, e)
             raise HTTPException(status_code=500, detail="No se pudo subir el comprobante")
+    # Re-análisis IA: si hay scan vinculado, marcar si el comprobante no coincide.
+    no_coincide = _evaluar_coincidencia(empresa_id, scan_log_id, data)
+    if no_coincide is not None:
+        data["comprobante_no_coincidente"] = no_coincide
     res = supabase.table("pagos").insert(data).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="No se pudo crear el pago")
@@ -505,13 +535,68 @@ async def update_pago(
 ):
     empresa_id = ctx["empresa_id"]
     data = pago.model_dump(exclude_none=True)
+    scan_log_id = data.pop("scan_log_id", None)  # no es columna de pagos
     if not data:
         raise HTTPException(status_code=400, detail="Nada que actualizar")
+
+    imagen_uri = data.get("imagen_uri")
+    comprobante_nuevo = bool(imagen_uri and imagen_uri.startswith("data:image/"))
+    if comprobante_nuevo:
+        try:
+            data["imagen_uri"] = _upload_comprobante(empresa_id, imagen_uri)
+        except HTTPException:
+            raise  # p.ej. 413 por imagen demasiado grande
+        except Exception as e:
+            logger.warning("Fallo al subir comprobante (empresa %s): %s", empresa_id, e)
+            raise HTTPException(status_code=500, detail="No se pudo subir el comprobante")
+
+    # Re-análisis IA al cambiar el comprobante: comparar contra los datos finales
+    # (pago actual fusionado con los campos editados) y (re)setear el flag.
+    if comprobante_nuevo and scan_log_id:
+        actual = (
+            supabase.table("pagos")
+            .select("monto, referencia, cedula")
+            .eq("id", pago_id).eq("empresa_id", empresa_id)
+            .execute()
+        )
+        if not actual.data:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        pago_final = {**actual.data[0], **data}
+        no_coincide = _evaluar_coincidencia(empresa_id, scan_log_id, pago_final)
+        if no_coincide is not None:
+            data["comprobante_no_coincidente"] = no_coincide
+
     res = supabase.table("pagos").update(data).eq("id", pago_id).eq("empresa_id", empresa_id).execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
+    if scan_log_id:
+        supabase.table("scan_logs").update({"pago_id": pago_id}).eq("id", scan_log_id).eq("empresa_id", empresa_id).execute()
     background.add_task(_audit, "pagos", pago_id, "editar", empresa_id, data)
-    return res.data[0]
+    updated = res.data[0]
+    _sign_comprobantes_in_place([updated])
+    return updated
+
+
+@router.post("/{pago_id}/resolver-no-coincidente")
+async def resolver_no_coincidente(
+    pago_id: int,
+    background: BackgroundTasks,
+    ctx: dict = Depends(require_permission("resolver_no_coincidente")),
+):
+    """Marca manualmente un pago como revisado (limpia el flag de no coincidencia)."""
+    empresa_id = ctx["empresa_id"]
+    res = (
+        supabase.table("pagos")
+        .update({"comprobante_no_coincidente": False})
+        .eq("id", pago_id).eq("empresa_id", empresa_id)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    background.add_task(_audit, "pagos", pago_id, "resolver_comprobante", empresa_id)
+    updated = res.data[0]
+    _sign_comprobantes_in_place([updated])
+    return updated
 
 
 @router.delete("/{pago_id}", status_code=204)

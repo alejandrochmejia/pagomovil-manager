@@ -20,6 +20,7 @@ export interface StatsSummary {
   transacciones_anuladas: number;
   pendientes_revision: number;
   sin_comprobante_total: number;
+  no_coincidentes_total: number;
   meta_mes: number | null;
 }
 
@@ -64,4 +65,5 @@ export interface ScanResponse {
   banco_destino: string | null;
   cedula_destino: string | null;
   telefono_destino: string | null;
+  scan_log_id?: number;
 }
