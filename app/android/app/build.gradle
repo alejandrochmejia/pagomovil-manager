@@ -11,6 +11,13 @@ if (keystorePropertiesFile.exists()) {
 def releaseStoreFile = keystoreProperties.getProperty('storeFile') ?: System.getenv('ANDROID_KEYSTORE_PATH')
 def hasReleaseSigning = releaseStoreFile != null && !releaseStoreFile.trim().isEmpty()
 
+// versionCode/Name configurables por env para que CI haga el bump automatico.
+// Se calculan aqui (no inline en defaultConfig) para evitar la ambiguedad de
+// parseo de Groovy: `versionCode (expr).toInteger()` se interpretaria como
+// `versionCode(expr).toInteger()` y fallaria con "Value is null".
+def versionCodeValue = (System.getenv('ANDROID_VERSION_CODE') ?: "1").toInteger()
+def versionNameValue = System.getenv('ANDROID_VERSION_NAME') ?: "1.0"
+
 android {
     namespace = "com.alejandrochmejia.pagomovilmanager"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,9 +25,8 @@ android {
         applicationId "com.alejandrochmejia.pagomovilmanager"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // versionCode/Name configurables por env para que CI haga el bump automatico.
-        versionCode (System.getenv('ANDROID_VERSION_CODE') ?: "1").toInteger()
-        versionName (System.getenv('ANDROID_VERSION_NAME') ?: "1.0")
+        versionCode versionCodeValue
+        versionName versionNameValue
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
