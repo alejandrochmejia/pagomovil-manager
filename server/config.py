@@ -77,3 +77,13 @@ COMPROBANTES_BUCKET = os.getenv("COMPROBANTES_BUCKET", "comprobantes")
 RESET_REDIRECT_URL = os.getenv(
     "RESET_REDIRECT_URL", "http://localhost:5173/#/reset-password"
 )
+
+# --- Observabilidad / red ---
+# Origenes permitidos por CORS. Por defecto: dev local + esquemas del WebView
+# de Capacitor (Android). Agregar el dominio web de produccion si lo hubiera.
+_DEFAULT_CORS = "http://localhost:5173,http://localhost,https://localhost,capacitor://localhost"
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", _DEFAULT_CORS).split(",") if o.strip()]
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+# Error tracking opcional: si SENTRY_DSN no esta seteado, Sentry no se inicializa.
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production")

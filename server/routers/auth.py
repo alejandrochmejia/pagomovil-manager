@@ -1,3 +1,4 @@
+import logging
 import re
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -5,6 +6,8 @@ from pydantic import BaseModel
 
 from config import supabase, supabase_auth, RESET_REDIRECT_URL
 from dependencies import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -73,7 +76,8 @@ async def register(req: RegisterRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning("Fallo en registro: %s", e)
+        raise HTTPException(status_code=400, detail="No se pudo crear la cuenta. Verifica el email e intenta de nuevo.")
 
 
 @router.post("/login")
@@ -119,7 +123,8 @@ async def reset_password(req: ResetPasswordRequest):
         )
         return {"message": "Email de recuperacion enviado"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning("Fallo en reset-password: %s", e)
+        raise HTTPException(status_code=400, detail="No se pudo enviar el email de recuperacion.")
 
 
 @router.get("/me")

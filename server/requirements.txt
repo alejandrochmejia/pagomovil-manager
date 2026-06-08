@@ -3,6 +3,7 @@ uvicorn[standard]==0.34.2
 google-genai==1.14.0
 supabase==2.15.2
 python-dotenv==1.1.0
-python-multipart
+python-multipart==0.0.20
 pillow==11.2.1
 reportlab>=4.0,<5
+sentry-sdk>=2,<3

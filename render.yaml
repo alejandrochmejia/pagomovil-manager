@@ -17,3 +17,12 @@ services:
         sync: false
       - key: SCAN_MODEL
         value: gemini-2.5-flash
+      - key: ENVIRONMENT
+        value: production
+      # Opcionales (tienen defaults en el código):
+      - key: CORS_ORIGINS      # orígenes web extra separados por coma (Capacitor/localhost ya van por defecto)
+        sync: false
+      - key: SENTRY_DSN        # error tracking opcional; si está vacío, Sentry no se inicializa
+        sync: false
+      - key: RESET_REDIRECT_URL  # URL del frontend para el email de recuperación de contraseña
+        sync: false

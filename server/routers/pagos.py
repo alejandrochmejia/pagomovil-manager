@@ -2,6 +2,7 @@ import base64
 import csv
 import io
 import json
+import logging
 import re
 import uuid
 from datetime import date, datetime, timedelta
@@ -21,6 +22,8 @@ from schemas.pago import PagoCreate, PagoUpdate
 from services.pdf_export import generate_pagos_pdf
 
 PDF_MAX_ROWS = 5000
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
 
@@ -477,8 +480,11 @@ async def create_pago(
     if imagen_uri and imagen_uri.startswith("data:image/"):
         try:
             data["imagen_uri"] = _upload_comprobante(empresa_id, imagen_uri)
+        except HTTPException:
+            raise  # p.ej. 413 por imagen demasiado grande
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"No se pudo subir el comprobante: {e}")
+            logger.warning("Fallo al subir comprobante (empresa %s): %s", empresa_id, e)
+            raise HTTPException(status_code=500, detail="No se pudo subir el comprobante")
     res = supabase.table("pagos").insert(data).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="No se pudo crear el pago")

@@ -1,0 +1,23 @@
+name: Keep-alive backend
+
+# Evita los cold starts del plan free de Render (duerme tras ~15 min de inactividad)
+# pingeando /health cada 10 min. Un único servicio always-on cabe en las ~750
+# horas/mes del free tier. Si migran a un plan pago, este workflow ya no hace falta.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          for i in 1 2 3; do
+            if curl -fsS --max-time 30 https://pagomovil-manager-api.onrender.com/health; then
+              echo "OK"; exit 0
+            fi
+            echo "intento $i fallo, reintentando..."; sleep 20
+          done
+          echo "El backend no respondio tras 3 intentos"; exit 1

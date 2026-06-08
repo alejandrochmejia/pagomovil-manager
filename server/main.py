@@ -1,18 +1,52 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from config import MAX_REQUEST_BYTES, MAX_REQUEST_MB
+from config import (
+    MAX_REQUEST_BYTES,
+    MAX_REQUEST_MB,
+    CORS_ORIGINS,
+    LOG_LEVEL,
+    SENTRY_DSN,
+    ENVIRONMENT,
+    supabase,
+)
 from routers import auth, empresas, scan, pagos, cuentas, stats, metas, audit, scan_logs, bcv
+
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("pagomovil")
+
+# Error tracking opcional (solo se activa si hay SENTRY_DSN configurado).
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(dsn=SENTRY_DSN, environment=ENVIRONMENT, traces_sample_rate=0.1)
+        logger.info("Sentry inicializado")
+    except Exception as e:  # no romper el arranque si falla la init de Sentry
+        logger.warning("No se pudo inicializar Sentry: %s", e)
 
 app = FastAPI(title="Pago Movil Manager API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Loguea el error completo del lado servidor y devuelve un mensaje generico
+    al cliente (no se filtran detalles internos)."""
+    logger.exception("Error no manejado en %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
 
 
 @app.middleware("http")
@@ -46,4 +80,16 @@ app.include_router(bcv.router)
 
 @app.get("/health")
 async def health():
+    """Liveness: el proceso responde."""
     return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def health_ready():
+    """Readiness: verifica conectividad real con Supabase."""
+    try:
+        supabase.table("bcv_rates").select("fecha").limit(1).execute()
+        return {"status": "ok", "db": "ok"}
+    except Exception:
+        logger.exception("Readiness check fallo (Supabase)")
+        return JSONResponse(status_code=503, content={"status": "unavailable", "db": "error"})
