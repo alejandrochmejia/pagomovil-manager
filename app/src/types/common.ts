@@ -19,6 +19,7 @@ export interface StatsSummary {
   transacciones_editadas: number;
   transacciones_anuladas: number;
   pendientes_revision: number;
+  sin_comprobante_total: number;
   meta_mes: number | null;
 }
 

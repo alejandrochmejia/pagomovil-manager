@@ -38,9 +38,11 @@ Crear `server/.env`:
 
 ```
 SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_KEY=tu-anon-key
+SUPABASE_KEY=tu-service-role-key
 GEMINI_API_KEY=tu-api-key
 ```
+
+> `SUPABASE_KEY` debe ser la **service_role** key del proyecto (Dashboard → Project Settings → API → `service_role`). Es secreta y se usa solo en el backend — nunca debe terminar en el bundle del frontend.
 
 ### 3. Frontend
 

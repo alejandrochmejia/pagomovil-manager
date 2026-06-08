@@ -74,6 +74,7 @@ export async function getPagosByDateRange(
   page = 1,
   pageSize = 25,
   search = '',
+  opts: { sinComprobante?: boolean } = {},
 ): Promise<PagedResponse<Pago>> {
   const params = new URLSearchParams({
     desde: range.from,
@@ -82,5 +83,6 @@ export async function getPagosByDateRange(
     page_size: String(pageSize),
   });
   if (search.trim()) params.set('q', search.trim());
+  if (opts.sinComprobante) params.set('sin_comprobante', 'true');
   return api<PagedResponse<Pago>>(`/pagos?${params.toString()}`);
 }

@@ -60,3 +60,29 @@
   color: var(--color-warning, #f5a524);
   font-style: italic;
 }
+
+.bottomRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.imageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.imageBtn:active {
+  background: var(--color-border);
+  color: var(--color-text);
+}

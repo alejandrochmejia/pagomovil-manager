@@ -1,20 +1,48 @@
+import base64
 import csv
 import io
 import json
 import re
+import uuid
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
-from config import supabase
+from config import supabase, SUPABASE_URL
 from rbac import require_permission, get_user_with_role
 from schemas.pago import PagoCreate, PagoUpdate
 from services.pdf_export import generate_pagos_pdf
 
 PDF_MAX_ROWS = 5000
+COMPROBANTES_BUCKET = "comprobantes"
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
+
+
+_DATA_URI_RE = re.compile(r"^data:image/(?P<ext>jpeg|jpg|png|webp);base64,(?P<data>.+)$", re.IGNORECASE)
+
+
+def _upload_comprobante(empresa_id: int, data_uri: str) -> str:
+    """Decodifica un data URI y sube la imagen al bucket `comprobantes`.
+    Devuelve la URL pública. Si el formato no coincide, devuelve el valor original."""
+    m = _DATA_URI_RE.match(data_uri)
+    if not m:
+        return data_uri
+    ext = m.group("ext").lower()
+    if ext == "jpg":
+        ext = "jpeg"
+    try:
+        raw = base64.b64decode(m.group("data"), validate=True)
+    except Exception:
+        return data_uri
+    path = f"empresa_{empresa_id}/{uuid.uuid4().hex}.{ext}"
+    supabase.storage.from_(COMPROBANTES_BUCKET).upload(
+        path,
+        raw,
+        file_options={"content-type": f"image/{ext}", "upsert": "false"},
+    )
+    return f"{SUPABASE_URL}/storage/v1/object/public/{COMPROBANTES_BUCKET}/{path}"
 
 EXPORT_PAGE_SIZE = 500
 EXPORT_COLUMNS = [
@@ -132,6 +160,7 @@ async def list_pagos(
     desde: str | None = Query(None),
     hasta: str | None = Query(None),
     q: str | None = Query(None),
+    sin_comprobante: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     ctx: dict = Depends(get_user_with_role),
@@ -148,6 +177,8 @@ async def list_pagos(
         .order("id", desc=True)
     )
     query = _apply_filters(query, desde, hasta, q)
+    if sin_comprobante:
+        query = query.or_("imagen_uri.is.null,imagen_uri.like.capacitor://*")
 
     res = query.range(start, end).execute()
     total = res.count or 0
@@ -340,6 +371,12 @@ async def create_pago(
     data = pago.model_dump(exclude_none=True)
     data.pop("scan_log_id", None)
     data["empresa_id"] = empresa_id
+    imagen_uri = data.get("imagen_uri")
+    if imagen_uri and imagen_uri.startswith("data:image/"):
+        try:
+            data["imagen_uri"] = _upload_comprobante(empresa_id, imagen_uri)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"No se pudo subir el comprobante: {e}")
     res = supabase.table("pagos").insert(data).execute()
     created = res.data[0]
     if scan_log_id:

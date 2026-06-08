@@ -5,6 +5,16 @@
   border-left: 4px solid var(--color-border);
 }
 
+.clickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.05s;
+}
+
+.clickable:active {
+  box-shadow: var(--shadow-md);
+  transform: scale(0.99);
+}
+
 .value {
   font-size: var(--text-2xl);
   font-weight: 700;

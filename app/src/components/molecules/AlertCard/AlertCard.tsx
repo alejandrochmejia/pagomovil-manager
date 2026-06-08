@@ -6,6 +6,7 @@ interface AlertCardProps {
   value: string | number;
   description: string;
   variant: 'success' | 'warning' | 'danger' | 'info';
+  onClick?: () => void;
 }
 
 const variantStyles: Record<string, string> = {
@@ -15,9 +16,10 @@ const variantStyles: Record<string, string> = {
   info: styles.info,
 };
 
-export default function AlertCard({ title, value, description, variant }: AlertCardProps) {
+export default function AlertCard({ title, value, description, variant, onClick }: AlertCardProps) {
+  const className = `${styles.card} ${variantStyles[variant] ?? ''} ${onClick ? styles.clickable : ''}`;
   return (
-    <Card className={`${styles.card} ${variantStyles[variant] ?? ''}`}>
+    <Card className={className} onClick={onClick}>
       <span className={styles.value}>{value}</span>
       <span className={styles.title}>{title}</span>
       <span className={styles.description}>{description}</span>
