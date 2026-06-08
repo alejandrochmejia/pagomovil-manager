@@ -15,6 +15,16 @@ interface PersistedShape<T> {
 
 const cache = new Map<string, Entry<unknown>>();
 
+type InvalidateListener = (prefix?: string) => void;
+const invalidateListeners = new Set<InvalidateListener>();
+
+export function subscribeStatsInvalidate(fn: InvalidateListener): () => void {
+  invalidateListeners.add(fn);
+  return () => {
+    invalidateListeners.delete(fn);
+  };
+}
+
 function writePersisted(key: string, data: unknown, fetchedAt: number): void {
   try {
     const payload: PersistedShape<unknown> = { data, fetchedAt };
@@ -128,14 +138,21 @@ export function invalidateStats(prefix?: string): void {
   if (!prefix) {
     cache.clear();
     sweepPersisted();
-    return;
+  } else {
+    for (const key of Array.from(cache.keys())) {
+      if (key.startsWith(prefix)) {
+        const entry = cache.get(key);
+        if (entry?.persist) removePersisted(key);
+        cache.delete(key);
+      }
+    }
+    sweepPersisted(prefix);
   }
-  for (const key of Array.from(cache.keys())) {
-    if (key.startsWith(prefix)) {
-      const entry = cache.get(key);
-      if (entry?.persist) removePersisted(key);
-      cache.delete(key);
+  for (const fn of invalidateListeners) {
+    try {
+      fn(prefix);
+    } catch {
+      // swallow: a buggy listener must not break invalidation
     }
   }
-  sweepPersisted(prefix);
 }

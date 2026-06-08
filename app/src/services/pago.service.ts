@@ -11,6 +11,36 @@ export interface PagedResponse<T> {
   has_more: boolean;
 }
 
+export interface DuplicateMatch {
+  id: number;
+  monto: number;
+  banco: string;
+  referencia: string;
+  fecha: string;
+  hora?: string;
+  cedula: string;
+  creado_en: string;
+  match_type: 'referencia' | 'monto_fecha_cedula';
+}
+
+export interface CheckDuplicateResponse {
+  duplicate: boolean;
+  matches: DuplicateMatch[];
+}
+
+export async function checkDuplicatePago(params: {
+  referencia: string;
+  monto?: number;
+  fecha?: string;
+  cedula?: string;
+}): Promise<CheckDuplicateResponse> {
+  const q = new URLSearchParams({ referencia: params.referencia });
+  if (params.monto != null && params.monto > 0) q.set('monto', String(params.monto));
+  if (params.fecha) q.set('fecha', params.fecha);
+  if (params.cedula) q.set('cedula', params.cedula);
+  return api<CheckDuplicateResponse>(`/pagos/check-duplicate?${q.toString()}`);
+}
+
 export async function createPago(
   data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>,
 ): Promise<Pago> {

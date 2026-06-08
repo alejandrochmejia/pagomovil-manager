@@ -143,3 +143,35 @@
   flex-shrink: 0;
   color: var(--color-success, #1f9d55);
 }
+
+.dupAlert {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-danger-light, #fdecec);
+  border: 1px solid var(--color-danger, #e5484d);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
+.dupAlertIcon {
+  flex-shrink: 0;
+  color: var(--color-danger, #e5484d);
+  margin-top: 2px;
+}
+
+.dupAlertBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  flex: 1;
+}
+
+.dupAlertBody strong {
+  font-weight: 600;
+}
+
+.dupAlertBody > span {
+  color: var(--color-text-secondary);
+}

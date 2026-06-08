@@ -1,4 +1,4 @@
-import { useState, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { IconZoomIn, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 import type { ScanResponse } from '@/types/common';
 import type { Pago, CuentaReceptora } from '@/types/pago';
@@ -11,12 +11,14 @@ import {
 } from '@/utils/matchCuenta';
 import { useCuentas } from '@/hooks/useCuentas';
 import { createCuenta } from '@/services/cuenta.service';
+import { checkDuplicatePago, type CheckDuplicateResponse } from '@/services/pago.service';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import CuentaForm from '@/components/molecules/CuentaForm/CuentaForm';
+import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './ScanPreview.module.css';
 
 interface ScanPreviewProps {
@@ -41,6 +43,11 @@ export default function ScanPreview({
   const [cuentaIdOverride, setCuentaIdOverride] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCreateCuenta, setShowCreateCuenta] = useState(false);
+  const [dupCheck, setDupCheck] = useState<CheckDuplicateResponse | null>(null);
+  const [showDupConfirm, setShowDupConfirm] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<
+    Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'> | null
+  >(null);
   const { cuentas, refresh } = useCuentas();
 
   const receptor: ScanReceptor = useMemo(
@@ -88,6 +95,48 @@ export default function ScanPreview({
     activa: true,
   };
 
+  useEffect(() => {
+    const refTrim = referencia.trim();
+    if (!refTrim) return;
+    const montoNum = Number(monto);
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      checkDuplicatePago({
+        referencia: refTrim,
+        monto: !isNaN(montoNum) && montoNum > 0 ? montoNum : undefined,
+        fecha: fecha || undefined,
+        cedula: scanResult.cedula ?? undefined,
+      })
+        .then((res) => {
+          if (!cancelled) setDupCheck(res);
+        })
+        .catch(() => {
+          if (!cancelled) setDupCheck(null);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [referencia, monto, fecha, scanResult.cedula]);
+
+  const hasDuplicate =
+    referencia.trim().length > 0 && dupCheck?.duplicate === true && !!dupCheck.matches[0];
+
+  function buildPagoData(): Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'> {
+    return {
+      monto: Number(monto),
+      banco: scanResult.banco ?? '',
+      cedula: scanResult.cedula ?? '',
+      telefono: scanResult.telefono ?? undefined,
+      referencia,
+      fecha,
+      hora: hora || undefined,
+      concepto: concepto || undefined,
+      cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
+    };
+  }
+
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     const e: Record<string, string> = {};
@@ -98,17 +147,19 @@ export default function ScanPreview({
     setErrors(e);
     if (Object.keys(e).length > 0) return;
 
-    onConfirm({
-      monto: montoNum,
-      banco: scanResult.banco ?? '',
-      cedula: scanResult.cedula ?? '',
-      telefono: scanResult.telefono ?? undefined,
-      referencia,
-      fecha,
-      hora: hora || undefined,
-      concepto: concepto || undefined,
-      cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
-    });
+    const data = buildPagoData();
+    if (hasDuplicate) {
+      setPendingSubmit(data);
+      setShowDupConfirm(true);
+      return;
+    }
+    onConfirm(data);
+  }
+
+  function confirmDuplicateSubmit() {
+    if (pendingSubmit) onConfirm(pendingSubmit);
+    setShowDupConfirm(false);
+    setPendingSubmit(null);
   }
 
   return (
@@ -236,6 +287,23 @@ export default function ScanPreview({
           onChange={(e) => setConcepto(e.target.value)}
           placeholder="Descripción del pago"
         />
+
+        {hasDuplicate && (
+          <div className={styles.dupAlert}>
+            <IconAlertTriangle size={20} stroke={1.8} className={styles.dupAlertIcon} />
+            <div className={styles.dupAlertBody}>
+              <strong>Posible pago duplicado</strong>
+              <span>
+                {dupCheck!.matches[0].match_type === 'referencia'
+                  ? `Ya existe un pago con la misma referencia (${dupCheck!.matches[0].referencia})`
+                  : 'Ya existe un pago con el mismo monto, fecha y cédula'}
+                : {formatCurrencyBs(dupCheck!.matches[0].monto)} · {dupCheck!.matches[0].fecha}
+                {dupCheck!.matches.length > 1 ? ` · +${dupCheck!.matches.length - 1} más` : ''}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className={styles.actions}>
           <Button variant="secondary" type="button" onClick={onCancel}>
             Cancelar
@@ -255,6 +323,23 @@ export default function ScanPreview({
           onCancel={() => setShowCreateCuenta(false)}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={showDupConfirm}
+        onClose={() => {
+          setShowDupConfirm(false);
+          setPendingSubmit(null);
+        }}
+        onConfirm={confirmDuplicateSubmit}
+        title="Posible duplicado"
+        message={
+          dupCheck?.matches[0]?.match_type === 'referencia'
+            ? 'Ya existe un pago con esta referencia. ¿Registrar de todos modos?'
+            : 'Ya existe un pago con el mismo monto, fecha y cédula. ¿Registrar de todos modos?'
+        }
+        confirmLabel="Registrar igual"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

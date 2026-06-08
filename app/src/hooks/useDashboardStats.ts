@@ -8,7 +8,12 @@ import {
   getStatsMonthly,
   getDefaultDateRange,
 } from '@/services/stats.service';
-import { fetchStats, invalidateStats, peekStats } from '@/services/stats.cache';
+import {
+  fetchStats,
+  invalidateStats,
+  peekStats,
+  subscribeStatsInvalidate,
+} from '@/services/stats.cache';
 import type {
   StatsSummary,
   StatsBreakdown,
@@ -63,7 +68,7 @@ export function useDashboardStats(section: KpiSection) {
     loadSummary();
   }, [loadSummary]);
 
-  useEffect(() => {
+  const loadSection = useCallback(() => {
     if (section === 'resumen') {
       const kE = extraKey(eid);
       const kM = monthlyKey(eid);
@@ -73,9 +78,7 @@ export function useDashboardStats(section: KpiSection) {
       if (cachedMonthly) setMonthly(cachedMonthly);
       fetchStats(kE, getStatsExtra, { persist: true }).then(setExtra);
       fetchStats(kM, getStatsMonthly, { persist: true }).then(setMonthly);
-      return;
-    }
-    if (section === 'finanzas') {
+    } else if (section === 'finanzas') {
       const kDia = breakdownKey('dia', eid, range);
       const kHora = breakdownKey('hora', eid, range);
       const cachedDia = peekStats<StatsBreakdown[]>(kDia);
@@ -97,21 +100,24 @@ export function useDashboardStats(section: KpiSection) {
     }
   }, [section, range, eid]);
 
+  useEffect(() => {
+    loadSection();
+  }, [loadSection]);
+
+  const reloadAll = useCallback(() => {
+    loadSummary();
+    loadSection();
+  }, [loadSummary, loadSection]);
+
+  useEffect(() => {
+    return subscribeStatsInvalidate(() => {
+      reloadAll();
+    });
+  }, [reloadAll]);
+
   const refresh = useCallback(() => {
     invalidateStats();
-    loadSummary();
-    if (section === 'resumen') {
-      fetchStats(extraKey(eid), getStatsExtra, { persist: true }).then(setExtra);
-      fetchStats(monthlyKey(eid), getStatsMonthly, { persist: true }).then(setMonthly);
-    } else if (section === 'finanzas') {
-      fetchStats(breakdownKey('dia', eid, range), () => getStatsBreakdown(range, 'dia')).then(setBreakdownDia);
-      fetchStats(breakdownKey('hora', eid, range), () => getStatsBreakdown(range, 'hora')).then(setBreakdownHora);
-    } else if (section === 'bancos') {
-      fetchStats(breakdownKey('banco', eid, range), () => getStatsBreakdown(range, 'banco')).then(setBreakdownBanco);
-    } else if (section === 'operaciones') {
-      fetchStats(scansKey(eid), getScanStats, { persist: true }).then(setScanStats);
-    }
-  }, [section, range, eid, loadSummary]);
+  }, []);
 
   return {
     summary,

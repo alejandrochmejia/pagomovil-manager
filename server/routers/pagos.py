@@ -76,6 +76,57 @@ def _apply_filters(query, desde: str | None, hasta: str | None, q: str | None):
     return query
 
 
+@router.get("/check-duplicate")
+async def check_duplicate(
+    referencia: str = Query(..., min_length=1, max_length=64),
+    monto: float | None = Query(None, gt=0),
+    fecha: str | None = Query(None),
+    cedula: str | None = Query(None, max_length=32),
+    ctx: dict = Depends(get_user_with_role),
+):
+    empresa_id = ctx["empresa_id"]
+    select_cols = "id, monto, banco, referencia, fecha, hora, cedula, creado_en"
+    matches: list[dict] = []
+    seen_ids: set[int] = set()
+
+    ref_clean = referencia.strip()
+    if ref_clean:
+        res = (
+            supabase.table("pagos")
+            .select(select_cols)
+            .eq("empresa_id", empresa_id)
+            .eq("referencia", ref_clean)
+            .limit(5)
+            .execute()
+        )
+        for row in res.data or []:
+            row["match_type"] = "referencia"
+            matches.append(row)
+            seen_ids.add(row["id"])
+
+    if monto is not None and fecha and cedula:
+        cedula_clean = cedula.strip()
+        if cedula_clean:
+            res = (
+                supabase.table("pagos")
+                .select(select_cols)
+                .eq("empresa_id", empresa_id)
+                .eq("fecha", fecha)
+                .eq("cedula", cedula_clean)
+                .eq("monto", monto)
+                .limit(5)
+                .execute()
+            )
+            for row in res.data or []:
+                if row["id"] in seen_ids:
+                    continue
+                row["match_type"] = "monto_fecha_cedula"
+                matches.append(row)
+                seen_ids.add(row["id"])
+
+    return {"duplicate": len(matches) > 0, "matches": matches}
+
+
 @router.get("")
 async def list_pagos(
     desde: str | None = Query(None),
