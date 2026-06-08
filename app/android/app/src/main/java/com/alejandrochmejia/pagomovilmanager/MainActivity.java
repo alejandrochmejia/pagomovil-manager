@@ -1,4 +1,4 @@
-package com.example.app;
+package com.alejandrochmejia.pagomovilmanager;
 
 import com.getcapacitor.BridgeActivity;
 

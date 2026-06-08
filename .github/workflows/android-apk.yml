@@ -3,6 +3,7 @@ name: Android APK
 on:
   push:
     branches: [main]
+    tags: ['v*']
     paths:
       - 'app/**'
       - '.github/workflows/android-apk.yml'
@@ -68,4 +69,88 @@ jobs:
         with:
           name: app-debug
           path: app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  release:
+    name: Build signed release (AAB + APK)
+    runs-on: ubuntu-latest
+    # Solo en disparo manual o al publicar un tag vX.Y.Z. Requiere los secrets de firma.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0'
+
+      - name: Install dependencies
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      - name: Write .env.production
+        working-directory: app
+        run: echo "VITE_API_URL=https://pagomovil-manager-api.onrender.com" > .env.production
+
+      - name: Build web
+        working-directory: app
+        run: pnpm build
+
+      - name: Capacitor sync
+        working-directory: app
+        run: pnpm exec cap sync android
+
+      - name: Decode release keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Resolve version name
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=1.0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Make gradlew executable
+        working-directory: app/android
+        run: chmod +x gradlew
+
+      - name: Build signed AAB + APK
+        working-directory: app/android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+          ANDROID_VERSION_NAME: ${{ steps.ver.outputs.name }}
+        run: ./gradlew bundleRelease assembleRelease --no-daemon
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: |
+            app/android/app/build/outputs/bundle/release/app-release.aab
+            app/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error

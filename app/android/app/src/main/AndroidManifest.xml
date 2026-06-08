@@ -39,4 +39,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Escaneo de comprobantes con la camara (@capacitor/camera). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- La camara no es obligatoria: la app tambien permite elegir de la galeria. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
