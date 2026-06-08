@@ -9,13 +9,18 @@ from datetime import date, datetime, timedelta
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
-from config import supabase, SUPABASE_URL
+from config import (
+    supabase,
+    COMPROBANTES_BUCKET,
+    SIGNED_URL_TTL,
+    MAX_IMAGE_MB,
+    MAX_IMAGE_BYTES,
+)
 from rbac import require_permission, get_user_with_role
 from schemas.pago import PagoCreate, PagoUpdate
 from services.pdf_export import generate_pagos_pdf
 
 PDF_MAX_ROWS = 5000
-COMPROBANTES_BUCKET = "comprobantes"
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
 
@@ -24,8 +29,9 @@ _DATA_URI_RE = re.compile(r"^data:image/(?P<ext>jpeg|jpg|png|webp);base64,(?P<da
 
 
 def _upload_comprobante(empresa_id: int, data_uri: str) -> str:
-    """Decodifica un data URI y sube la imagen al bucket `comprobantes`.
-    Devuelve la URL pública. Si el formato no coincide, devuelve el valor original."""
+    """Decodifica un data URI y sube la imagen al bucket privado `comprobantes`.
+    Devuelve el path dentro del bucket (no una URL). Si el formato no coincide,
+    devuelve el valor original sin tocarlo."""
     m = _DATA_URI_RE.match(data_uri)
     if not m:
         return data_uri
@@ -36,13 +42,61 @@ def _upload_comprobante(empresa_id: int, data_uri: str) -> str:
         raw = base64.b64decode(m.group("data"), validate=True)
     except Exception:
         return data_uri
+    if len(raw) > MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"La imagen del comprobante supera el limite de {MAX_IMAGE_MB:g} MB",
+        )
     path = f"empresa_{empresa_id}/{uuid.uuid4().hex}.{ext}"
     supabase.storage.from_(COMPROBANTES_BUCKET).upload(
         path,
         raw,
         file_options={"content-type": f"image/{ext}", "upsert": "false"},
     )
-    return f"{SUPABASE_URL}/storage/v1/object/public/{COMPROBANTES_BUCKET}/{path}"
+    return path
+
+
+def _comprobante_path(value: str | None) -> str | None:
+    """Si `value` apunta a un objeto del bucket `comprobantes`, devuelve su path
+    interno; None si no requiere firma (data URI inline, ruta de dispositivo,
+    nulo o URL externa)."""
+    if not value:
+        return None
+    public_marker = f"/object/public/{COMPROBANTES_BUCKET}/"
+    if public_marker in value:  # URL publica legacy -> extraer path
+        return value.split(public_marker, 1)[1].split("?", 1)[0].lstrip("/")
+    sign_marker = f"/object/sign/{COMPROBANTES_BUCKET}/"
+    if sign_marker in value:  # ya venia firmada -> re-firmar el mismo path
+        return value.split(sign_marker, 1)[1].split("?", 1)[0].lstrip("/")
+    if value.startswith(("data:", "capacitor://", "http://", "https://")):
+        return None
+    return value.lstrip("/")  # path crudo dentro del bucket
+
+
+def _sign_comprobantes_in_place(items: list[dict]) -> None:
+    """Reemplaza imagen_uri por una URL firmada de corta duracion para las filas
+    cuyo comprobante vive en Storage. Las imagenes inline y rutas de dispositivo
+    se dejan intactas. Hace una sola llamada batch a Storage por pagina."""
+    index: dict[str, list[dict]] = {}
+    for item in items:
+        path = _comprobante_path(item.get("imagen_uri"))
+        if path:
+            index.setdefault(path, []).append(item)
+    if not index:
+        return
+    try:
+        signed = supabase.storage.from_(COMPROBANTES_BUCKET).create_signed_urls(
+            list(index.keys()), SIGNED_URL_TTL
+        )
+    except Exception:
+        return  # ante un fallo de Storage dejamos el valor original
+    for entry in signed:
+        if entry.get("error"):
+            continue
+        url = entry.get("signedURL") or entry.get("signedUrl")
+        key = (entry.get("path") or "").lstrip("/")
+        for item in index.get(key, []):
+            item["imagen_uri"] = url
 
 EXPORT_PAGE_SIZE = 500
 EXPORT_COLUMNS = [
@@ -230,6 +284,7 @@ async def list_pagos(
     res = query.range(start, end).execute()
     total = res.count or 0
     items = res.data or []
+    _sign_comprobantes_in_place(items)
     return {
         "items": items,
         "total": total,
@@ -425,10 +480,13 @@ async def create_pago(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"No se pudo subir el comprobante: {e}")
     res = supabase.table("pagos").insert(data).execute()
+    if not res.data:
+        raise HTTPException(status_code=500, detail="No se pudo crear el pago")
     created = res.data[0]
     if scan_log_id:
         supabase.table("scan_logs").update({"pago_id": created["id"]}).eq("id", scan_log_id).execute()
     background.add_task(_audit, "pagos", created["id"], "crear", empresa_id)
+    _sign_comprobantes_in_place([created])
     return created
 
 

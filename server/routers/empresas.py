@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from config import supabase
+from config import supabase, supabase_auth
 from dependencies import get_current_user
 from rbac import can_change_role, MANAGEABLE_ROLES, ROLES
 
@@ -93,7 +93,7 @@ async def list_miembros(empresa_id: int, user: dict = Depends(get_current_user))
     miembros = []
     for m in res.data:
         try:
-            u = supabase.auth.admin.get_user_by_id(m["user_id"])
+            u = supabase_auth.auth.admin.get_user_by_id(m["user_id"])
             email = u.user.email
             nombre = u.user.user_metadata.get("nombre", "")
         except Exception:

@@ -3,7 +3,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from config import supabase
+from config import supabase, supabase_auth, RESET_REDIRECT_URL
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -51,7 +51,7 @@ async def register(req: RegisterRequest):
             detail="La contraseña debe tener al menos 8 caracteres y combinar 3 de: minúsculas, mayúsculas, números, símbolos",
         )
     try:
-        res = supabase.auth.sign_up({
+        res = supabase_auth.auth.sign_up({
             "email": req.email,
             "password": req.password,
             "options": {"data": {"nombre": req.nombre}},
@@ -75,7 +75,7 @@ async def register(req: RegisterRequest):
 @router.post("/login")
 async def login(req: LoginRequest):
     try:
-        res = supabase.auth.sign_in_with_password({
+        res = supabase_auth.auth.sign_in_with_password({
             "email": req.email,
             "password": req.password,
         })
@@ -97,7 +97,7 @@ async def login(req: LoginRequest):
 @router.post("/refresh")
 async def refresh_token(refresh_token: str):
     try:
-        res = supabase.auth.refresh_session(refresh_token)
+        res = supabase_auth.auth.refresh_session(refresh_token)
         return {
             "access_token": res.session.access_token,
             "refresh_token": res.session.refresh_token,
@@ -109,9 +109,9 @@ async def refresh_token(refresh_token: str):
 @router.post("/reset-password")
 async def reset_password(req: ResetPasswordRequest):
     try:
-        supabase.auth.reset_password_email(
+        supabase_auth.auth.reset_password_email(
             req.email,
-            options={"redirect_to": "http://localhost:5173/#/reset-password"},
+            options={"redirect_to": RESET_REDIRECT_URL},
         )
         return {"message": "Email de recuperacion enviado"}
     except Exception as e:

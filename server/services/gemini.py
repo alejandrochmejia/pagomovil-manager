@@ -38,11 +38,17 @@ Reglas importantes:
 - Devuelve SOLO el JSON, sin texto adicional ni bloques de código"""
 
 
-def decode_image(base64_str: str) -> Image.Image:
-    """Decodifica base64 a PIL Image."""
+class ImageTooLarge(Exception):
+    """La imagen decodificada supera el limite de bytes permitido."""
+
+
+def decode_image(base64_str: str, max_bytes: int | None = None) -> Image.Image:
+    """Decodifica base64 a PIL Image, opcionalmente acotando el tamano."""
     import base64
 
     image_bytes = base64.b64decode(base64_str)
+    if max_bytes is not None and len(image_bytes) > max_bytes:
+        raise ImageTooLarge(len(image_bytes))
     return Image.open(BytesIO(image_bytes)).convert("RGB")
 
 
