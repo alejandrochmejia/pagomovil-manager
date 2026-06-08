@@ -12,6 +12,7 @@ import {
 import { useCuentas } from '@/hooks/useCuentas';
 import { createCuenta } from '@/services/cuenta.service';
 import { checkDuplicatePago, type CheckDuplicateResponse } from '@/services/pago.service';
+import { ESTADO_LABELS, ESTADOS_SELECCIONABLES, type EstadoPago } from '@/utils/constants';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
@@ -42,6 +43,7 @@ export default function ScanPreview({
   const [concepto, setConcepto] = useState(scanResult.concepto ?? '');
   const [cuentaIdOverride, setCuentaIdOverride] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [estado, setEstado] = useState<EstadoPago>('confirmado');
   const [showCreateCuenta, setShowCreateCuenta] = useState(false);
   const [dupCheck, setDupCheck] = useState<CheckDuplicateResponse | null>(null);
   const [showDupConfirm, setShowDupConfirm] = useState(false);
@@ -135,6 +137,7 @@ export default function ScanPreview({
       hora: hora || undefined,
       concepto: concepto || undefined,
       cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
+      estado,
     };
   }
 
@@ -299,6 +302,12 @@ export default function ScanPreview({
           value={concepto}
           onChange={(e) => setConcepto(e.target.value)}
           placeholder="Descripción del pago"
+        />
+        <Select
+          label="Estado"
+          options={ESTADOS_SELECCIONABLES.map((e) => ({ value: e, label: ESTADO_LABELS[e] }))}
+          value={estado}
+          onChange={(e) => setEstado(e.target.value as EstadoPago)}
         />
 
         {hasDuplicate && (

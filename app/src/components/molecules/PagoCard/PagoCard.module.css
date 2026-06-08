@@ -86,3 +86,73 @@
   background: var(--color-border);
   color: var(--color-text);
 }
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-danger, #e5484d);
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.deleteBtn:active {
+  background: var(--color-danger-light, #fdecec);
+}
+
+.estadoWrap {
+  position: relative;
+}
+
+.estadoBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
+.estadoClickable {
+  cursor: pointer;
+}
+
+.estadoBtn:disabled {
+  opacity: 1;
+}
+
+.estadoMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.estadoOpt {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.estadoOpt:hover {
+  background: var(--color-bg);
+}
+
+.estadoOptActive {
+  font-weight: 600;
+  color: var(--color-primary);
+}

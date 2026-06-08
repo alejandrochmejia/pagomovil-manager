@@ -32,3 +32,23 @@ export type BancoNombre = (typeof BANCOS)[number]['nombre'];
 
 export const TIPOS_CEDULA = ['V', 'J', 'E', 'G'] as const;
 
+export type EstadoPago = 'confirmado' | 'pendiente' | 'rechazado' | 'anulado';
+
+// `confirmado` se muestra como "Aprobado" para alinearse con el lenguaje del usuario.
+export const ESTADO_LABELS: Record<EstadoPago, string> = {
+  confirmado: 'Aprobado',
+  pendiente: 'Pendiente',
+  rechazado: 'Rechazado',
+  anulado: 'Anulado',
+};
+
+export const ESTADO_BADGE_VARIANT: Record<EstadoPago, 'success' | 'warning' | 'danger' | 'info'> = {
+  confirmado: 'success',
+  pendiente: 'warning',
+  rechazado: 'danger',
+  anulado: 'info',
+};
+
+// Estados elegibles desde un dropdown estándar (excluye "anulado": es estado terminal).
+export const ESTADOS_SELECCIONABLES: EstadoPago[] = ['confirmado', 'pendiente', 'rechazado'];
+

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX } from '@tabler/icons-react';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
@@ -14,13 +14,25 @@ interface ModalProps {
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
   useBackButtonClose(isOpen, onClose);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
+  // Si algo durante el ciclo de apertura (pushState, layout reflow del portal,
+  // WebView de Android) resetea el scrollTop del contenedor `.app-content`,
+  // lo restauramos de forma defensiva tras el paint.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const el = document.querySelector('.app-content') as HTMLElement | null;
+    if (!el) return;
+    const savedTop = el.scrollTop;
+    if (savedTop === 0) return;
+    const restore = () => {
+      if (el.scrollTop !== savedTop) el.scrollTop = savedTop;
+    };
+    const raf = requestAnimationFrame(() => {
+      restore();
+      // Segundo pase por si el reset ocurre después del primer paint
+      // (WebView a veces lo hace en el siguiente frame).
+      requestAnimationFrame(restore);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [isOpen]);
 
   if (!isOpen) return null;

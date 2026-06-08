@@ -28,6 +28,17 @@ export interface CheckDuplicateResponse {
   matches: DuplicateMatch[];
 }
 
+export interface DuplicadoGroup {
+  banco: string;
+  referencia: string;
+  cantidad: number;
+  pagos: Pago[];
+}
+
+export async function getDuplicados(): Promise<DuplicadoGroup[]> {
+  return api<DuplicadoGroup[]>('/pagos/duplicados');
+}
+
 export async function checkDuplicatePago(params: {
   referencia: string;
   monto?: number;
@@ -69,12 +80,19 @@ export async function deletePago(id: number): Promise<void> {
   invalidateStats();
 }
 
+export interface PagosListFilters {
+  sinComprobante?: boolean;
+  estado?: string;
+  duplicados?: boolean;
+  editados?: boolean;
+}
+
 export async function getPagosByDateRange(
   range: DateRange,
   page = 1,
   pageSize = 25,
   search = '',
-  opts: { sinComprobante?: boolean } = {},
+  opts: PagosListFilters = {},
 ): Promise<PagedResponse<Pago>> {
   const params = new URLSearchParams({
     desde: range.from,
@@ -84,5 +102,8 @@ export async function getPagosByDateRange(
   });
   if (search.trim()) params.set('q', search.trim());
   if (opts.sinComprobante) params.set('sin_comprobante', 'true');
+  if (opts.estado) params.set('estado', opts.estado);
+  if (opts.duplicados) params.set('duplicados', 'true');
+  if (opts.editados) params.set('editados', 'true');
   return api<PagedResponse<Pago>>(`/pagos?${params.toString()}`);
 }

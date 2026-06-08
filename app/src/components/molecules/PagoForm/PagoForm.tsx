@@ -2,7 +2,13 @@ import { useState, type FormEvent } from 'react';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
-import { BANCOS, TIPOS_CEDULA } from '@/utils/constants';
+import {
+  BANCOS,
+  TIPOS_CEDULA,
+  ESTADO_LABELS,
+  ESTADOS_SELECCIONABLES,
+  type EstadoPago,
+} from '@/utils/constants';
 import { isValidCedula, isValidMonto, isValidReferencia } from '@/utils/validators';
 import { toISODate } from '@/utils/format';
 import { useCuentas } from '@/hooks/useCuentas';
@@ -10,6 +16,7 @@ import type { Pago } from '@/types/pago';
 import styles from './PagoForm.module.css';
 
 const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
+const estadoOptions = ESTADOS_SELECCIONABLES.map((e) => ({ value: e, label: ESTADO_LABELS[e] }));
 
 interface PagoFormProps {
   initial?: Partial<Pago>;
@@ -38,6 +45,9 @@ export default function PagoForm({
   const [hora, setHora] = useState(initial?.hora ?? '');
   const [concepto, setConcepto] = useState(initial?.concepto ?? '');
   const [cuentaId, setCuentaId] = useState(initial?.cuenta_receptora_id?.toString() ?? '');
+  const [estado, setEstado] = useState<EstadoPago>(
+    (initial?.estado as EstadoPago | undefined) ?? 'confirmado',
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const { cuentas } = useCuentas();
@@ -70,6 +80,7 @@ export default function PagoForm({
         hora: hora || undefined,
         concepto: concepto || undefined,
         cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
+        estado,
       });
     } finally {
       setSubmitting(false);
@@ -160,6 +171,12 @@ export default function PagoForm({
         value={concepto}
         onChange={(e) => setConcepto(e.target.value)}
         placeholder="Descripción del pago"
+      />
+      <Select
+        label="Estado"
+        options={estadoOptions}
+        value={estado}
+        onChange={(e) => setEstado(e.target.value as EstadoPago)}
       />
       <div className={styles.actions}>
         <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>

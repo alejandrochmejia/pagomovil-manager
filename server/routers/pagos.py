@@ -104,6 +104,30 @@ def _apply_filters(query, desde: str | None, hasta: str | None, q: str | None):
     return query
 
 
+@router.get("/duplicados")
+async def list_duplicados(ctx: dict = Depends(get_user_with_role)):
+    empresa_id = ctx["empresa_id"]
+    res = supabase.rpc("get_pagos_duplicados", {"p_empresa_id": empresa_id}).execute()
+    pagos = res.data or []
+    groups: dict[tuple[str, str], list[dict]] = {}
+    order: list[tuple[str, str]] = []
+    for p in pagos:
+        key = (p.get("banco") or "", p.get("referencia") or "")
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(p)
+    return [
+        {
+            "banco": k[0],
+            "referencia": k[1],
+            "cantidad": len(groups[k]),
+            "pagos": groups[k],
+        }
+        for k in order
+    ]
+
+
 @router.get("/check-duplicate")
 async def check_duplicate(
     referencia: str = Query(..., min_length=1, max_length=64),
@@ -155,12 +179,18 @@ async def check_duplicate(
     return {"duplicate": len(matches) > 0, "matches": matches}
 
 
+_ESTADOS_VALIDOS = {"confirmado", "pendiente", "rechazado", "anulado"}
+
+
 @router.get("")
 async def list_pagos(
     desde: str | None = Query(None),
     hasta: str | None = Query(None),
     q: str | None = Query(None),
     sin_comprobante: bool = Query(False),
+    estado: str | None = Query(None),
+    duplicados: bool = Query(False),
+    editados: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     ctx: dict = Depends(get_user_with_role),
@@ -168,17 +198,34 @@ async def list_pagos(
     desde, hasta = _constrain_dates_by_role(ctx["rol"], desde, hasta)
     start = (page - 1) * page_size
     end = start + page_size - 1
+    empresa_id = ctx["empresa_id"]
+
+    restricted_ids: list[int] | None = None
+    if duplicados:
+        dup_res = supabase.rpc("get_pagos_duplicados", {"p_empresa_id": empresa_id}).execute()
+        restricted_ids = [row["id"] for row in (dup_res.data or [])]
+    if editados:
+        ed_res = supabase.rpc("get_pagos_editados_ids", {"p_empresa_id": empresa_id}).execute()
+        ed_ids = [row if isinstance(row, int) else row.get("get_pagos_editados_ids") for row in (ed_res.data or [])]
+        ed_ids = [i for i in ed_ids if i is not None]
+        restricted_ids = list(set(restricted_ids) & set(ed_ids)) if restricted_ids is not None else ed_ids
+    if restricted_ids is not None and not restricted_ids:
+        return {"items": [], "total": 0, "page": page, "page_size": page_size, "has_more": False}
 
     query = (
         supabase.table("pagos")
         .select("*", count="exact")
-        .eq("empresa_id", ctx["empresa_id"])
+        .eq("empresa_id", empresa_id)
         .order("fecha", desc=True)
         .order("id", desc=True)
     )
     query = _apply_filters(query, desde, hasta, q)
     if sin_comprobante:
         query = query.or_("imagen_uri.is.null,imagen_uri.like.capacitor://*")
+    if estado and estado in _ESTADOS_VALIDOS:
+        query = query.eq("estado", estado)
+    if restricted_ids is not None:
+        query = query.in_("id", restricted_ids)
 
     res = query.range(start, end).execute()
     total = res.count or 0

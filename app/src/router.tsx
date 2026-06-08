@@ -8,6 +8,7 @@ import OnboardingPage from '@/pages/auth/OnboardingPage';
 import DashboardPage from '@/pages/DashboardPage/DashboardPage';
 import PagosPage from '@/pages/PagosPage/PagosPage';
 import PagosSinComprobantePage from '@/pages/PagosPage/PagosSinComprobantePage';
+import PagosDuplicadosPage from '@/pages/PagosPage/PagosDuplicadosPage';
 import ScanPage from '@/pages/ScanPage/ScanPage';
 import CuentasPage from '@/pages/CuentasPage/CuentasPage';
 import SettingsPage from '@/pages/SettingsPage/SettingsPage';
@@ -20,6 +21,7 @@ export const router = createHashRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'pagos', element: <PagosPage /> },
       { path: 'pagos/sin-comprobante', element: <PagosSinComprobantePage /> },
+      { path: 'pagos/duplicados', element: <PagosDuplicadosPage /> },
       { path: 'scan', element: <ScanPage /> },
       { path: 'cuentas', element: <CuentasPage /> },
       { path: 'settings', element: <SettingsPage /> },
