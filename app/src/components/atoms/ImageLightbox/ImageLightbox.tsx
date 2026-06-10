@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { IconX } from '@tabler/icons-react';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import styles from './ImageLightbox.module.css';
@@ -28,7 +29,13 @@ export default function ImageLightbox({ src, alt, isOpen, onClose }: ImageLightb
 
   if (!isOpen) return null;
 
-  return (
+  // Portal a document.body: el lightbox usa position:fixed, pero si se renderiza
+  // dentro de un ancestro con `transform`/`will-change: transform` (p. ej. el
+  // wrapper de PageTransition al abrirlo desde la lista de Pagos), ese ancestro
+  // pasa a ser su bloque contenedor y `inset: 0` se resuelve contra el alto total
+  // de la página en vez del viewport. Eso lo dejaba anclado arriba del scroll en
+  // Android. Sacándolo al body queda siempre fijo al viewport.
+  return createPortal(
     <div className={styles.overlay} onClick={onClose}>
       <button className={styles.close} onClick={onClose} aria-label="Cerrar">
         <IconX size={24} stroke={2} />
@@ -39,6 +46,7 @@ export default function ImageLightbox({ src, alt, isOpen, onClose }: ImageLightb
         className={styles.image}
         onClick={(e) => e.stopPropagation()}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
