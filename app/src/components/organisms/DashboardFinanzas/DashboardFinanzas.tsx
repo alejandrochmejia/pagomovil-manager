@@ -2,6 +2,7 @@ import type { StatsSummary, StatsBreakdown, DateRange } from '@/types/common';
 import { IconCurrencyDollar, IconCalendarOff } from '@tabler/icons-react';
 import KpiSection from '@/components/molecules/KpiSection/KpiSection';
 import ComparisonCard from '@/components/molecules/ComparisonCard/ComparisonCard';
+import StatCard from '@/components/molecules/StatCard/StatCard';
 import HourlyChart from '@/components/molecules/HourlyChart/HourlyChart';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import ProgressBar from '@/components/atoms/ProgressBar/ProgressBar';
@@ -40,6 +41,12 @@ export default function DashboardFinanzas({
   const metaProgress = summary.meta_mes
     ? Math.min((summary.total_mes / summary.meta_mes) * 100, 100)
     : null;
+
+  // Ticket promedio del rango elegido: Σmonto / Σpagos sobre los días del periodo
+  // (breakdownDia ya viene filtrado por el rango y estado 'confirmado').
+  const cantidadRango = breakdownDia.reduce((acc, d) => acc + d.cantidad, 0);
+  const totalRango = breakdownDia.reduce((acc, d) => acc + d.total, 0);
+  const ticketRango = cantidadRango > 0 ? totalRango / cantidadRango : 0;
 
   return (
     <KpiSection
@@ -88,6 +95,11 @@ export default function DashboardFinanzas({
         />
       ) : (
         <>
+          <StatCard
+            label="Ticket promedio"
+            value={fmt(ticketRango)}
+            sublabel={`${cantidadRango} ${cantidadRango === 1 ? 'pago' : 'pagos'} en el periodo`}
+          />
           {breakdownDia.length > 0 && (
             <Card>
               <h3 className={styles.chartTitle}>Ingresos por día</h3>

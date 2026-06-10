@@ -12,7 +12,14 @@ import {
 import { useCuentas } from '@/hooks/useCuentas';
 import { createCuenta } from '@/services/cuenta.service';
 import { checkDuplicatePago, type CheckDuplicateResponse } from '@/services/pago.service';
-import { ESTADO_LABELS, ESTADOS_SELECCIONABLES, type EstadoPago } from '@/utils/constants';
+import {
+  BANCOS,
+  TIPOS_CEDULA,
+  ESTADO_LABELS,
+  ESTADOS_SELECCIONABLES,
+  type EstadoPago,
+} from '@/utils/constants';
+import { isValidCedula } from '@/utils/validators';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
@@ -21,6 +28,8 @@ import Modal from '@/components/atoms/Modal/Modal';
 import CuentaForm from '@/components/molecules/CuentaForm/CuentaForm';
 import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './ScanPreview.module.css';
+
+const bancoOptions = BANCOS.map((b) => ({ value: b.nombre, label: b.nombre }));
 
 interface ScanPreviewProps {
   imageBase64: string;
@@ -37,6 +46,14 @@ export default function ScanPreview({
 }: ScanPreviewProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [monto, setMonto] = useState(scanResult.monto?.toString() ?? '');
+  const [banco, setBanco] = useState(() => findClosestBanco(scanResult.banco));
+  const [tipoCedula, setTipoCedula] = useState(() => {
+    const raw = scanResult.cedula ?? '';
+    return /^[VJEG]/i.test(raw) ? raw.charAt(0).toUpperCase() : 'V';
+  });
+  const [cedulaNum, setCedulaNum] = useState(() =>
+    (scanResult.cedula ?? '').replace(/^[VJEG]/i, '').replace(/\D/g, ''),
+  );
   const [referencia, setReferencia] = useState(scanResult.referencia ?? '');
   const [fecha, setFecha] = useState(scanResult.fecha ?? toISODate(new Date()));
   const [hora, setHora] = useState(scanResult.hora ?? '');
@@ -51,6 +68,7 @@ export default function ScanPreview({
     Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'> | null
   >(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const { cuentas, refresh } = useCuentas();
 
   const receptor: ScanReceptor = useMemo(
@@ -129,8 +147,8 @@ export default function ScanPreview({
   function buildPagoData(): Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'> {
     return {
       monto: Number(monto),
-      banco: scanResult.banco ?? '',
-      cedula: scanResult.cedula ?? '',
+      banco,
+      cedula: `${tipoCedula}-${cedulaNum}`,
       telefono: scanResult.telefono ?? undefined,
       referencia,
       fecha,
@@ -144,8 +162,13 @@ export default function ScanPreview({
   async function runConfirm(data: Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'>) {
     if (submitting) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       await onConfirm(data);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'No se pudo registrar el pago. Inténtalo de nuevo.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -157,6 +180,8 @@ export default function ScanPreview({
     const e: Record<string, string> = {};
     const montoNum = Number(monto);
     if (!monto || isNaN(montoNum) || montoNum <= 0) e.monto = 'Monto inválido';
+    if (!banco) e.banco = 'Selecciona un banco';
+    if (!isValidCedula(`${tipoCedula}-${cedulaNum}`)) e.cedula = 'Cédula inválida';
     if (!referencia.trim()) e.referencia = 'Referencia requerida';
     if (!fecha) e.fecha = 'Fecha requerida';
     setErrors(e);
@@ -231,6 +256,30 @@ export default function ScanPreview({
           inputMode="decimal"
           step="0.01"
         />
+        <Select
+          label="Banco origen"
+          options={bancoOptions}
+          value={banco}
+          onChange={(e) => setBanco(e.target.value)}
+          error={errors.banco}
+          placeholder="Seleccionar banco"
+        />
+        <div className={styles.cedulaRow}>
+          <Select
+            label="Tipo"
+            options={TIPOS_CEDULA.map((t) => ({ value: t, label: t }))}
+            value={tipoCedula}
+            onChange={(e) => setTipoCedula(e.target.value)}
+          />
+          <Input
+            label="Cédula"
+            value={cedulaNum}
+            onChange={(e) => setCedulaNum(e.target.value.replace(/\D/g, ''))}
+            error={errors.cedula}
+            placeholder="12345678"
+            inputMode="numeric"
+          />
+        </div>
         <Input
           label="Referencia"
           value={referencia}
@@ -322,6 +371,16 @@ export default function ScanPreview({
                 : {formatCurrencyBs(dupCheck!.matches[0].monto)} · {dupCheck!.matches[0].fecha}
                 {dupCheck!.matches.length > 1 ? ` · +${dupCheck!.matches.length - 1} más` : ''}
               </span>
+            </div>
+          </div>
+        )}
+
+        {submitError && (
+          <div className={styles.submitError} role="alert">
+            <IconAlertTriangle size={20} stroke={1.8} className={styles.submitErrorIcon} />
+            <div className={styles.submitErrorBody}>
+              <strong>No se pudo registrar el pago</strong>
+              <span>{submitError}</span>
             </div>
           </div>
         )}

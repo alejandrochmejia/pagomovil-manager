@@ -1,7 +1,7 @@
 import type { StatsBreakdown, DateRange } from '@/types/common';
-import { IconBuildingBank, IconCalendarOff } from '@tabler/icons-react';
+import { IconWallet, IconCalendarOff } from '@tabler/icons-react';
 import KpiSection from '@/components/molecules/KpiSection/KpiSection';
-import BankRanking from '@/components/molecules/BankRanking/BankRanking';
+import AccountRanking from '@/components/molecules/AccountRanking/AccountRanking';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import Card from '@/components/atoms/Card/Card';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
@@ -14,37 +14,37 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
-import styles from './DashboardBancos.module.css';
+import styles from './DashboardCuentas.module.css';
 
 const COLORS = [
   '#2563eb', '#16a34a', '#d97706', '#dc2626', '#0891b2',
   '#7c3aed', '#db2777', '#ea580c', '#65a30d', '#0d9488',
 ];
 
-interface DashboardBancosProps {
-  breakdownBanco: StatsBreakdown[];
+interface DashboardCuentasProps {
+  breakdownCuenta: StatsBreakdown[];
   range: DateRange;
   onRangeChange: (r: DateRange) => void;
   fmt: (n: number) => string;
 }
 
-export default function DashboardBancos({
-  breakdownBanco,
+export default function DashboardCuentas({
+  breakdownCuenta,
   range,
   onRangeChange,
   fmt,
-}: DashboardBancosProps) {
-  const pieData = breakdownBanco.map((d) => ({ banco: d.grupo, total: d.total }));
+}: DashboardCuentasProps) {
+  const pieData = breakdownCuenta.map((d) => ({ cuenta: d.grupo, total: d.total }));
 
   return (
     <KpiSection
-      title="KPIs por Banco"
-      subtitle="¿Por dónde te pagan?"
-      icon={<IconBuildingBank size={20} stroke={1.5} />}
+      title="Cuentas receptoras"
+      subtitle="¿En qué cuentas recibes?"
+      icon={<IconWallet size={20} stroke={1.5} />}
     >
       <DateRangePicker value={range} onChange={onRangeChange} />
 
-      {breakdownBanco.length === 0 ? (
+      {breakdownCuenta.length === 0 ? (
         <EmptyState
           icon={<IconCalendarOff size={40} stroke={1.5} />}
           title="Sin transacciones"
@@ -53,20 +53,20 @@ export default function DashboardBancos({
       ) : (
         <>
           <Card>
-            <h3 className={styles.chartTitle}>Distribución por banco</h3>
+            <h3 className={styles.chartTitle}>Distribución por cuenta</h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={pieData}
                   dataKey="total"
-                  nameKey="banco"
+                  nameKey="cuenta"
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  label={(props: PieLabelRenderProps & { banco?: string }) => {
-                    const banco = String(props.banco ?? '');
+                  label={(props: PieLabelRenderProps & { cuenta?: string }) => {
+                    const cuenta = String(props.cuenta ?? '');
                     const percent = Number(props.percent ?? 0);
-                    return `${banco.slice(0, 10)} ${(percent * 100).toFixed(0)}%`;
+                    return `${cuenta.slice(0, 10)} ${(percent * 100).toFixed(0)}%`;
                   }}
                   labelLine={false}
                   fontSize={10}
@@ -81,7 +81,7 @@ export default function DashboardBancos({
             </ResponsiveContainer>
           </Card>
 
-          <BankRanking data={breakdownBanco} formatter={fmt} />
+          <AccountRanking data={breakdownCuenta} formatter={fmt} />
         </>
       )}
     </KpiSection>

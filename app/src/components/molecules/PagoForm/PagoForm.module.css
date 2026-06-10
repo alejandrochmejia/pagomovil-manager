@@ -22,3 +22,36 @@
   justify-content: flex-end;
   margin-top: var(--space-sm);
 }
+
+.submitError {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-danger-light, #fdecec);
+  border: 1px solid var(--color-danger, #e5484d);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
+.submitErrorIcon {
+  flex-shrink: 0;
+  color: var(--color-danger, #e5484d);
+  margin-top: 2px;
+}
+
+.submitErrorBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  flex: 1;
+}
+
+.submitErrorBody strong {
+  font-weight: 600;
+}
+
+.submitErrorBody > span {
+  color: var(--color-text-secondary);
+  word-break: break-word;
+}

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
 import Button from '@/components/atoms/Button/Button';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import {
   BANCOS,
   TIPOS_CEDULA,
@@ -50,6 +51,7 @@ export default function PagoForm({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const { cuentas } = useCuentas();
 
   function validate(): boolean {
@@ -69,6 +71,7 @@ export default function PagoForm({
     if (submitting) return;
     if (!validate()) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       await onSubmit({
         monto: Number(monto),
@@ -82,6 +85,10 @@ export default function PagoForm({
         cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
         estado,
       });
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'No se pudo guardar el pago. Inténtalo de nuevo.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -178,6 +185,15 @@ export default function PagoForm({
         value={estado}
         onChange={(e) => setEstado(e.target.value as EstadoPago)}
       />
+      {submitError && (
+        <div className={styles.submitError} role="alert">
+          <IconAlertTriangle size={20} stroke={1.8} className={styles.submitErrorIcon} />
+          <div className={styles.submitErrorBody}>
+            <strong>No se pudo guardar el pago</strong>
+            <span>{submitError}</span>
+          </div>
+        </div>
+      )}
       <div className={styles.actions}>
         <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
           Cancelar

@@ -45,3 +45,13 @@ class StatsMonthly(BaseModel):
     mes: str
     total: float = 0
     cantidad: int = 0
+
+
+class StatsRange(BaseModel):
+    """Métricas de la sección Operaciones filtradas por un rango de fechas."""
+    cantidad: int = 0
+    total_scans: int = 0
+    tiempo_promedio_ms: float = 0
+    sin_comprobante: int = 0
+    duplicados: int = 0
+    transacciones_editadas: int = 0

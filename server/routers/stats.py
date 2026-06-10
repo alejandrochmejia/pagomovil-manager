@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from config import supabase
 from rbac import get_user_with_role
-from schemas.stats import StatsSummary, ScanStats, StatsExtra, StatsMonthly
+from schemas.stats import StatsSummary, ScanStats, StatsExtra, StatsMonthly, StatsRange
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -27,6 +27,20 @@ async def get_breakdown(
         "p_empresa_id": ctx["empresa_id"],
     }).execute()
     return res.data
+
+
+@router.get("/range", response_model=StatsRange)
+async def get_range_stats(
+    desde: str = Query(...),
+    hasta: str = Query(...),
+    ctx: dict = Depends(get_user_with_role),
+):
+    res = supabase.rpc("get_stats_range", {
+        "p_desde": desde,
+        "p_hasta": hasta,
+        "p_empresa_id": ctx["empresa_id"],
+    }).execute()
+    return StatsRange(**res.data)
 
 
 @router.get("/scans", response_model=ScanStats)

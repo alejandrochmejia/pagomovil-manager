@@ -1,36 +1,47 @@
-import type { StatsSummary, ScanStats } from '@/types/common';
+import type { StatsRange, DateRange } from '@/types/common';
 import { useNavigate } from 'react-router-dom';
 import { IconSettings } from '@tabler/icons-react';
 import KpiSection from '@/components/molecules/KpiSection/KpiSection';
 import StatCard from '@/components/molecules/StatCard/StatCard';
 import AlertCard from '@/components/molecules/AlertCard/AlertCard';
+import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
 import styles from './DashboardOperaciones.module.css';
 
 interface DashboardOperacionesProps {
-  summary: StatsSummary;
-  scanStats: ScanStats | null;
+  rangeStats: StatsRange | null;
+  range: DateRange;
+  onRangeChange: (r: DateRange) => void;
 }
 
 export default function DashboardOperaciones({
-  summary,
-  scanStats,
+  rangeStats,
+  range,
+  onRangeChange,
 }: DashboardOperacionesProps) {
   const navigate = useNavigate();
+  const qs = `desde=${range.from}&hasta=${range.to}`;
+  const totalScans = rangeStats?.total_scans ?? 0;
+  const sinComprobante = rangeStats?.sin_comprobante ?? 0;
+  const duplicados = rangeStats?.duplicados ?? 0;
+  const editadas = rangeStats?.transacciones_editadas ?? 0;
+
   return (
     <KpiSection
       title="KPIs Operativos"
       subtitle="¿Qué tan bien opera el proceso?"
       icon={<IconSettings size={20} stroke={1.5} />}
     >
+      <DateRangePicker value={range} onChange={onRangeChange} />
+
       <div className={styles.grid}>
         <StatCard
-          label="Transacciones hoy"
-          value={String(summary.cantidad_hoy)}
-          sublabel="pagos registrados"
+          label="Transacciones"
+          value={String(rangeStats?.cantidad ?? 0)}
+          sublabel="pagos en el periodo"
         />
         <StatCard
           label="Total scans"
-          value={String(scanStats?.total_scans ?? 0)}
+          value={String(totalScans)}
           sublabel="comprobantes procesados"
         />
       </div>
@@ -38,32 +49,32 @@ export default function DashboardOperaciones({
       <div className={styles.alertGrid}>
         <AlertCard
           title="Sin comprobante"
-          value={summary.sin_comprobante_total}
+          value={sinComprobante}
           description="Pagos sin imagen del comprobante"
-          variant={summary.sin_comprobante_total > 0 ? 'warning' : 'success'}
-          onClick={summary.sin_comprobante_total > 0 ? () => navigate('/pagos?sin_comprobante=true') : undefined}
+          variant={sinComprobante > 0 ? 'warning' : 'success'}
+          onClick={sinComprobante > 0 ? () => navigate(`/pagos?sin_comprobante=true&${qs}`) : undefined}
         />
-        {scanStats && scanStats.total_scans > 0 && (
-          <>
-            <AlertCard
-              title="Tasa de rechazo"
-              value={`${scanStats.tasa_rechazo}%`}
-              description="Comprobantes ilegibles"
-              variant={scanStats.tasa_rechazo > 20 ? 'danger' : scanStats.tasa_rechazo > 10 ? 'warning' : 'success'}
-            />
-            <AlertCard
-              title="Tiempo promedio"
-              value={`${(scanStats.tiempo_promedio_ms / 1000).toFixed(1)}s`}
-              description="Por comprobante"
-              variant={scanStats.tiempo_promedio_ms > 10000 ? 'warning' : 'info'}
-            />
-            <AlertCard
-              title="Corrección manual"
-              value={`${scanStats.tasa_correccion}%`}
-              description="Campos corregidos post-OCR"
-              variant={scanStats.tasa_correccion > 30 ? 'warning' : 'success'}
-            />
-          </>
+        <AlertCard
+          title="Duplicados detectados"
+          value={duplicados}
+          description="Grupos de pagos con la misma referencia"
+          variant={duplicados > 0 ? 'danger' : 'success'}
+          onClick={duplicados > 0 ? () => navigate(`/pagos?duplicados=true&${qs}`) : undefined}
+        />
+        <AlertCard
+          title="Transacciones editadas"
+          value={editadas}
+          description="Ediciones en el periodo"
+          variant={editadas > 10 ? 'warning' : 'info'}
+          onClick={editadas > 0 ? () => navigate(`/pagos?editados=true&${qs}`) : undefined}
+        />
+        {rangeStats && totalScans > 0 && (
+          <AlertCard
+            title="Tiempo promedio"
+            value={`${(rangeStats.tiempo_promedio_ms / 1000).toFixed(1)}s`}
+            description="Por comprobante"
+            variant={rangeStats.tiempo_promedio_ms > 10000 ? 'warning' : 'info'}
+          />
         )}
       </div>
     </KpiSection>

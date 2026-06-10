@@ -30,13 +30,6 @@ export interface StatsBreakdown {
   cantidad: number;
 }
 
-export interface ScanStats {
-  tasa_rechazo: number;
-  tiempo_promedio_ms: number;
-  tasa_correccion: number;
-  total_scans: number;
-}
-
 export interface StatsExtra {
   total_mes_anterior: number;
   cantidad_mes_anterior: number;
@@ -49,7 +42,16 @@ export interface StatsMonthly {
   cantidad: number;
 }
 
-export type KpiSection = 'resumen' | 'finanzas' | 'bancos' | 'operaciones' | 'riesgo';
+export interface StatsRange {
+  cantidad: number;
+  total_scans: number;
+  tiempo_promedio_ms: number;
+  sin_comprobante: number;
+  duplicados: number;
+  transacciones_editadas: number;
+}
+
+export type KpiSection = 'resumen' | 'finanzas' | 'cuentas' | 'operaciones';
 
 export interface ScanResponse {
   monto: number | null;

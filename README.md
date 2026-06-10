@@ -83,7 +83,7 @@ pagomovil-manager/
     src/
       components/
         atoms/                  # Componentes base (Button, Input, Card, Modal...)
-        molecules/              # Composiciones (PagoForm, StatCard, BankRanking...)
+        molecules/              # Composiciones (PagoForm, StatCard, AccountRanking...)
         organisms/              # UI compleja (NavBar, Dashboard*, Settings*)
       pages/                    # Paginas por ruta
       services/                 # Llamadas al API

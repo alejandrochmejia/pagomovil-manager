@@ -14,6 +14,25 @@ function buildHeaders(extra?: HeadersInit, includeJsonContentType = true): Recor
   return headers;
 }
 
+// FastAPI devuelve `detail` como string (HTTPException) o como lista de objetos
+// {loc, msg, type} en errores de validación (422). Construye un mensaje legible
+// para ambos casos en vez de mostrar "[object Object]".
+function extractApiError(err: unknown, status: number): string {
+  const detail = (err as { detail?: unknown } | null)?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const msgs = detail
+      .map((d) => {
+        const item = d as { loc?: unknown[]; msg?: string };
+        const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : undefined;
+        return field && item.msg ? `${field}: ${item.msg}` : item.msg;
+      })
+      .filter(Boolean);
+    if (msgs.length) return msgs.join(' · ');
+  }
+  return `Error ${status}`;
+}
+
 export async function api<T>(
   path: string,
   options?: RequestInit,
@@ -40,7 +59,7 @@ export async function api<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => null);
-    throw new Error(err?.detail ?? `Error ${res.status}`);
+    throw new Error(extractApiError(err, res.status));
   }
 
   return res.json();

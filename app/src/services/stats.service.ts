@@ -2,9 +2,9 @@ import { api } from './api';
 import type {
   StatsSummary,
   StatsBreakdown,
-  ScanStats,
   StatsExtra,
   StatsMonthly,
+  StatsRange,
   DateRange,
 } from '@/types/common';
 import { format, startOfMonth, startOfDay, endOfDay } from 'date-fns';
@@ -15,15 +15,11 @@ export async function getStatsSummary(): Promise<StatsSummary> {
 
 export async function getStatsBreakdown(
   range: DateRange,
-  groupBy: 'banco' | 'dia' | 'hora',
+  groupBy: 'cuenta' | 'dia' | 'hora',
 ): Promise<StatsBreakdown[]> {
   return api<StatsBreakdown[]>(
     `/stats/breakdown?desde=${range.from}&hasta=${range.to}&group_by=${groupBy}`,
   );
-}
-
-export async function getScanStats(): Promise<ScanStats> {
-  return api<ScanStats>('/stats/scans');
 }
 
 export async function getStatsExtra(): Promise<StatsExtra> {
@@ -32,6 +28,10 @@ export async function getStatsExtra(): Promise<StatsExtra> {
 
 export async function getStatsMonthly(): Promise<StatsMonthly[]> {
   return api<StatsMonthly[]>('/stats/monthly');
+}
+
+export async function getStatsRange(range: DateRange): Promise<StatsRange> {
+  return api<StatsRange>(`/stats/range?desde=${range.from}&hasta=${range.to}`);
 }
 
 export function getDefaultDateRange(): DateRange {

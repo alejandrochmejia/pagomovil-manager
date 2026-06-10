@@ -1,21 +1,21 @@
 import Card from '@/components/atoms/Card/Card';
 import Badge from '@/components/atoms/Badge/Badge';
 import type { StatsBreakdown } from '@/types/common';
-import styles from './BankRanking.module.css';
+import styles from './AccountRanking.module.css';
 
-interface BankRankingProps {
+interface AccountRankingProps {
   data: StatsBreakdown[];
   formatter: (n: number) => string;
 }
 
-export default function BankRanking({ data, formatter }: BankRankingProps) {
+export default function AccountRanking({ data, formatter }: AccountRankingProps) {
   if (data.length === 0) return null;
 
   const maxTotal = data[0]?.total ?? 1;
 
   return (
     <Card className={styles.card}>
-      <h3 className={styles.title}>Ranking de bancos</h3>
+      <h3 className={styles.title}>Ranking de cuentas</h3>
       <div className={styles.list}>
         {data.map((item, i) => (
           <div key={item.grupo} className={styles.row}>

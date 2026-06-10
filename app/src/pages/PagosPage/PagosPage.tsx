@@ -79,7 +79,11 @@ export default function PagosPage() {
   const perms = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = readFiltersFromSearch(searchParams);
-  const [range, setRange] = useState<DateRange>(getDefaultDateRange);
+  const [range, setRange] = useState<DateRange>(() => {
+    const desde = searchParams.get('desde');
+    const hasta = searchParams.get('hasta');
+    return desde && hasta ? { from: desde, to: hasta } : getDefaultDateRange();
+  });
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showForm, setShowForm] = useState(false);

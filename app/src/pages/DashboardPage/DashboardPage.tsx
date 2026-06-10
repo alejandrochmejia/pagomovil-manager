@@ -7,9 +7,8 @@ import type { KpiSection } from '@/types/common';
 import {
   IconHome,
   IconCurrencyDollar,
-  IconBuildingBank,
+  IconWallet,
   IconSettings,
-  IconShieldCheck,
   IconArrowsExchange,
   IconAlertTriangle,
 } from '@tabler/icons-react';
@@ -20,17 +19,15 @@ import EmptyState from '@/components/atoms/EmptyState/EmptyState';
 import Button from '@/components/atoms/Button/Button';
 import DashboardResumen from '@/components/organisms/DashboardResumen/DashboardResumen';
 import DashboardFinanzas from '@/components/organisms/DashboardFinanzas/DashboardFinanzas';
-import DashboardBancos from '@/components/organisms/DashboardBancos/DashboardBancos';
+import DashboardCuentas from '@/components/organisms/DashboardCuentas/DashboardCuentas';
 import DashboardOperaciones from '@/components/organisms/DashboardOperaciones/DashboardOperaciones';
-import DashboardRiesgo from '@/components/organisms/DashboardRiesgo/DashboardRiesgo';
 import styles from './DashboardPage.module.css';
 
 const ALL_TABS: { key: KpiSection; label: string; icon: React.ReactNode; needs: 'any' | 'full' | 'basic' }[] = [
   { key: 'resumen', label: 'Resumen', icon: <IconHome size={16} stroke={1.5} />, needs: 'any' },
   { key: 'finanzas', label: 'Finanzas', icon: <IconCurrencyDollar size={16} stroke={1.5} />, needs: 'full' },
-  { key: 'bancos', label: 'Bancos', icon: <IconBuildingBank size={16} stroke={1.5} />, needs: 'full' },
+  { key: 'cuentas', label: 'Cuentas', icon: <IconWallet size={16} stroke={1.5} />, needs: 'full' },
   { key: 'operaciones', label: 'Operaciones', icon: <IconSettings size={16} stroke={1.5} />, needs: 'full' },
-  { key: 'riesgo', label: 'Riesgo', icon: <IconShieldCheck size={16} stroke={1.5} />, needs: 'full' },
 ];
 
 export default function DashboardPage() {
@@ -47,10 +44,10 @@ export default function DashboardPage() {
 
   const {
     summary,
-    breakdownBanco,
+    breakdownCuenta,
     breakdownDia,
     breakdownHora,
-    scanStats,
+    rangeStats,
     extra,
     monthly,
     range,
@@ -149,9 +146,9 @@ export default function DashboardPage() {
         />
       )}
 
-      {section === 'bancos' && (
-        <DashboardBancos
-          breakdownBanco={breakdownBanco}
+      {section === 'cuentas' && (
+        <DashboardCuentas
+          breakdownCuenta={breakdownCuenta}
           range={range}
           onRangeChange={setRange}
           fmt={fmt}
@@ -160,13 +157,10 @@ export default function DashboardPage() {
 
       {section === 'operaciones' && (
         <DashboardOperaciones
-          summary={summary}
-          scanStats={scanStats}
+          rangeStats={rangeStats}
+          range={range}
+          onRangeChange={setRange}
         />
-      )}
-
-      {section === 'riesgo' && (
-        <DashboardRiesgo summary={summary} />
       )}
     </div>
   );
