@@ -325,6 +325,7 @@ async def list_pagos(
     sin_comprobante: bool = Query(False),
     no_coincidentes: bool = Query(False),
     estado: str | None = Query(None),
+    cuenta_receptora_id: int | None = Query(None),
     duplicados: bool = Query(False),
     editados: bool = Query(False),
     page: int = Query(1, ge=1),
@@ -362,6 +363,8 @@ async def list_pagos(
         query = query.eq("comprobante_no_coincidente", True)
     if estado and estado in _ESTADOS_VALIDOS:
         query = query.eq("estado", estado)
+    if cuenta_receptora_id is not None:
+        query = query.eq("cuenta_receptora_id", cuenta_receptora_id)
     if restricted_ids is not None:
         query = query.in_("id", restricted_ids)
 

@@ -3,6 +3,9 @@ CLAUDE.md
 .mcp.json
 .playwright-mcp/
 
+# Imágenes generadas (artefactos temporales de trabajo)
+generated_imgs/
+
 # Python virtual environments
 .venv/
 venv/

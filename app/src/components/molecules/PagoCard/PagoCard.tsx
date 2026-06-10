@@ -1,5 +1,5 @@
 import { useState, type MouseEvent } from 'react';
-import { IconPhoto, IconTrash } from '@tabler/icons-react';
+import { IconPhoto, IconTrash, IconBuildingBank } from '@tabler/icons-react';
 import Card from '@/components/atoms/Card/Card';
 import Badge from '@/components/atoms/Badge/Badge';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
@@ -20,6 +20,7 @@ interface PagoCardProps {
   onChangeEstado?: (nuevo: EstadoPago) => void | Promise<void>;
   showUsd?: boolean;
   rateForDate?: number;
+  cuentaNombre?: string;
 }
 
 function isViewableImage(uri?: string): boolean {
@@ -34,6 +35,7 @@ export default function PagoCard({
   onChangeEstado,
   showUsd,
   rateForDate,
+  cuentaNombre,
 }: PagoCardProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [estadoMenuOpen, setEstadoMenuOpen] = useState(false);
@@ -86,6 +88,12 @@ export default function PagoCard({
           <span className={styles.separator}>·</span>
           <span className={styles.cedula}>{pago.cedula}</span>
         </div>
+        {cuentaNombre && (
+          <div className={styles.cuenta}>
+            <IconBuildingBank size={13} stroke={1.8} />
+            <span>{cuentaNombre}</span>
+          </div>
+        )}
         <div className={styles.bottom}>
           <span className={styles.ref}>Ref: {pago.referencia}</span>
           <div className={styles.bottomRight}>

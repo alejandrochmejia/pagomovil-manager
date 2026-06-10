@@ -130,9 +130,11 @@ export default function SettingsMiembros() {
       <Card className={styles.section}>
         <div className={styles.header}>
           <h3 className={styles.sectionTitle}>Miembros</h3>
-          <Button size="sm" onClick={() => setShowInvite(true)}>
-            <IconUserPlus size={14} stroke={2} /> Invitar
-          </Button>
+          {perms.canManageUsers && (
+            <Button size="sm" onClick={() => setShowInvite(true)}>
+              <IconUserPlus size={14} stroke={2} /> Invitar
+            </Button>
+          )}
         </div>
 
         {!showInvite && error && <p className={styles.error}>{error}</p>}

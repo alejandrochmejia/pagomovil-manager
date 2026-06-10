@@ -7,6 +7,7 @@ import { captureReceipt, type CaptureSource } from '@/services/camera.service';
 import { scanReceipt } from '@/services/scan.service';
 import { useBcvRate } from '@/hooks/useBcvRate';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCuentas } from '@/hooks/useCuentas';
 import { compareScanToPago, describeMismatch } from '@/utils/compareScan';
 import type { Pago } from '@/types/pago';
 import type { DateRange, ScanResponse } from '@/types/common';
@@ -38,17 +39,20 @@ interface ActiveFilters {
   editados: boolean;
   sinComprobante: boolean;
   noCoincidentes: boolean;
+  cuentaReceptoraId?: number;
 }
 
 function readFiltersFromSearch(sp: URLSearchParams): ActiveFilters {
   const e = sp.get('estado');
   const estados: EstadoPago[] = ['confirmado', 'pendiente', 'rechazado', 'anulado'];
+  const cr = sp.get('cuenta_receptora_id');
   return {
     estado: e && (estados as string[]).includes(e) ? (e as EstadoPago) : undefined,
     duplicados: sp.get('duplicados') === 'true',
     editados: sp.get('editados') === 'true',
     sinComprobante: sp.get('sin_comprobante') === 'true',
     noCoincidentes: sp.get('no_coincidentes') === 'true',
+    cuentaReceptoraId: cr && /^\d+$/.test(cr) ? Number(cr) : undefined,
   };
 }
 
@@ -59,6 +63,7 @@ function activeFilterCount(f: ActiveFilters): number {
   if (f.editados) n++;
   if (f.sinComprobante) n++;
   if (f.noCoincidentes) n++;
+  if (f.cuentaReceptoraId != null) n++;
   return n;
 }
 
@@ -110,6 +115,12 @@ export default function PagosPage() {
   const [draftFilters, setDraftFilters] = useState<ActiveFilters>(filters);
 
   const { rate: currentRate } = useBcvRate();
+  const { cuentas } = useCuentas();
+  const cuentasById = useMemo(() => {
+    const m: Record<number, string> = {};
+    for (const c of cuentas) if (c.id != null) m[c.id] = c.nombre;
+    return m;
+  }, [cuentas]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -146,8 +157,9 @@ export default function PagosPage() {
       editados: filters.editados,
       sinComprobante: filters.sinComprobante,
       noCoincidentes: filters.noCoincidentes,
+      cuentaReceptoraId: filters.cuentaReceptoraId,
     }),
-    [filters.estado, filters.duplicados, filters.editados, filters.sinComprobante, filters.noCoincidentes],
+    [filters.estado, filters.duplicados, filters.editados, filters.sinComprobante, filters.noCoincidentes, filters.cuentaReceptoraId],
   );
 
   const activeCount = activeFilterCount(filters);
@@ -185,7 +197,7 @@ export default function PagosPage() {
     }
   }
 
-  function clearFilter(key: 'estado' | 'duplicados' | 'editados' | 'sin_comprobante' | 'no_coincidentes') {
+  function clearFilter(key: 'estado' | 'duplicados' | 'editados' | 'sin_comprobante' | 'no_coincidentes' | 'cuenta_receptora_id') {
     const next = new URLSearchParams(searchParams);
     next.delete(key);
     setSearchParams(next, { replace: true });
@@ -212,12 +224,14 @@ export default function PagosPage() {
     else next.delete('sin_comprobante');
     if (draftFilters.noCoincidentes) next.set('no_coincidentes', 'true');
     else next.delete('no_coincidentes');
+    if (draftFilters.cuentaReceptoraId != null) next.set('cuenta_receptora_id', String(draftFilters.cuentaReceptoraId));
+    else next.delete('cuenta_receptora_id');
     setSearchParams(next, { replace: true });
     setShowFiltersModal(false);
   }
 
   function resetDraftFilters() {
-    setDraftFilters({ duplicados: false, editados: false, sinComprobante: false, noCoincidentes: false });
+    setDraftFilters({ estado: undefined, duplicados: false, editados: false, sinComprobante: false, noCoincidentes: false, cuentaReceptoraId: undefined });
   }
 
   async function handleChangeEstado(pago: Pago, nuevo: EstadoPago) {
@@ -407,6 +421,16 @@ export default function PagosPage() {
                 Sin comprobante <IconX size={12} stroke={2} />
               </button>
             )}
+            {filters.cuentaReceptoraId != null && (
+              <button
+                type="button"
+                className={styles.chip}
+                onClick={() => clearFilter('cuenta_receptora_id')}
+                aria-label="Quitar filtro de cuenta receptora"
+              >
+                Cuenta: {cuentasById[filters.cuentaReceptoraId] ?? 'cuenta'} <IconX size={12} stroke={2} />
+              </button>
+            )}
             {filters.noCoincidentes && (
               <button
                 type="button"
@@ -449,6 +473,7 @@ export default function PagosPage() {
           <PagoCard
             key={pago.id}
             pago={pago}
+            cuentaNombre={pago.cuenta_receptora_id != null ? cuentasById[pago.cuenta_receptora_id] : undefined}
             showUsd={showUsd}
             rateForDate={ratesByDate[pago.fecha]}
             onClick={() => setViewing(pago)}
@@ -572,6 +597,22 @@ export default function PagosPage() {
               }))
             }
           />
+          {cuentas.length > 0 && (
+            <Select
+              label="Cuenta receptora"
+              options={[
+                { value: '', label: 'Todas' },
+                ...cuentas.map((c) => ({ value: String(c.id), label: `${c.nombre} - ${c.banco}` })),
+              ]}
+              value={draftFilters.cuentaReceptoraId != null ? String(draftFilters.cuentaReceptoraId) : ''}
+              onChange={(e) =>
+                setDraftFilters((d) => ({
+                  ...d,
+                  cuentaReceptoraId: e.target.value ? Number(e.target.value) : undefined,
+                }))
+              }
+            />
+          )}
           <label className={styles.toggleRow}>
             <input
               type="checkbox"

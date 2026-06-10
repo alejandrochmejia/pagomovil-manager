@@ -37,6 +37,15 @@
   font-weight: 500;
 }
 
+.cuenta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
 .separator {
   color: var(--color-text-muted);
 }

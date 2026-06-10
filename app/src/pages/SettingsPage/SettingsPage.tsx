@@ -25,7 +25,7 @@ export default function SettingsPage() {
     const all: { key: SettingsSection; label: string; icon: React.ReactNode; visible: boolean }[] = [
       { key: 'perfil', label: 'Perfil', icon: <IconUser size={16} stroke={1.5} />, visible: true },
       { key: 'empresa', label: 'Empresa', icon: <IconBuilding size={16} stroke={1.5} />, visible: perms.canManageConfig },
-      { key: 'miembros', label: 'Miembros', icon: <IconUsers size={16} stroke={1.5} />, visible: perms.canManageUsers },
+      { key: 'miembros', label: 'Miembros', icon: <IconUsers size={16} stroke={1.5} />, visible: true },
       { key: 'datos', label: 'Datos', icon: <IconDownload size={16} stroke={1.5} />, visible: perms.canExport },
       { key: 'apariencia', label: 'Apariencia', icon: <IconPalette size={16} stroke={1.5} />, visible: true },
     ];
@@ -44,7 +44,7 @@ export default function SettingsPage() {
 
       {section === 'perfil' && <SettingsPerfil />}
       {section === 'empresa' && perms.canManageConfig && <SettingsEmpresa />}
-      {section === 'miembros' && perms.canManageUsers && <SettingsMiembros />}
+      {section === 'miembros' && <SettingsMiembros />}
       {section === 'datos' && perms.canExport && <SettingsDatos />}
       {section === 'apariencia' && <SettingsApariencia />}
     </div>

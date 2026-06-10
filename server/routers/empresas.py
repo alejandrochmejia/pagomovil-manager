@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from config import supabase, supabase_auth
+from config import supabase
 from dependencies import get_current_user
 from rbac import can_change_role, MANAGEABLE_ROLES, ROLES, has_permission
 
@@ -90,24 +90,11 @@ async def update_empresa(empresa_id: int, req: EmpresaUpdate, user: dict = Depen
 
 @router.get("/{empresa_id}/miembros")
 async def list_miembros(empresa_id: int, user: dict = Depends(get_current_user)):
-    _require_admin_or_dueno(empresa_id, user["id"])
-    res = (
-        supabase.table("empresa_miembros")
-        .select("id, user_id, rol, creado_en")
-        .eq("empresa_id", empresa_id)
-        .execute()
-    )
-    miembros = []
-    for m in res.data:
-        try:
-            u = supabase_auth.auth.admin.get_user_by_id(m["user_id"])
-            email = u.user.email
-            nombre = u.user.user_metadata.get("nombre", "")
-        except Exception:
-            email = "desconocido"
-            nombre = ""
-        miembros.append({**m, "email": email, "nombre": nombre})
-    return miembros
+    # Cualquier miembro de la empresa puede ver la lista (nombre, email, rol).
+    # La gestion (invitar, cambiar rol, eliminar) sigue restringida a dueno/admin.
+    _get_rol(empresa_id, user["id"])
+    res = supabase.rpc("get_empresa_miembros", {"p_empresa_id": empresa_id}).execute()
+    return res.data or []
 
 
 @router.put("/{empresa_id}/miembros/{miembro_id}/rol")

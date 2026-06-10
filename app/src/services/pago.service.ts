@@ -92,6 +92,7 @@ export interface PagosListFilters {
   estado?: string;
   duplicados?: boolean;
   editados?: boolean;
+  cuentaReceptoraId?: number;
 }
 
 export async function getPagosByDateRange(
@@ -113,5 +114,6 @@ export async function getPagosByDateRange(
   if (opts.estado) params.set('estado', opts.estado);
   if (opts.duplicados) params.set('duplicados', 'true');
   if (opts.editados) params.set('editados', 'true');
+  if (opts.cuentaReceptoraId != null) params.set('cuenta_receptora_id', String(opts.cuentaReceptoraId));
   return api<PagedResponse<Pago>>(`/pagos?${params.toString()}`);
 }
