@@ -10,7 +10,7 @@ export function isValidPhone(phone: string): boolean {
 }
 
 export function isValidReferencia(ref: string): boolean {
-  return /^\d{4,20}$/.test(ref);
+  return /^\d{4,40}$/.test(ref);
 }
 
 export function isValidMonto(monto: number): boolean {

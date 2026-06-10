@@ -19,10 +19,10 @@ export default function CuentaForm({ initial, onSubmit, onCancel }: CuentaFormPr
   const [nombre, setNombre] = useState(initial?.nombre ?? '');
   const [banco, setBanco] = useState(initial?.banco ?? '');
   const [tipoCedula, setTipoCedula] = useState(
-    initial?.cedula?.charAt(0) ?? 'V',
+    () => (/^[VJEG]/i.test(initial?.cedula ?? '') ? initial!.cedula!.charAt(0).toUpperCase() : 'V'),
   );
   const [cedula, setCedula] = useState(
-    initial?.cedula?.replace(/^[VJEG]-/, '') ?? '',
+    () => (initial?.cedula ?? '').replace(/^[VJEG]/i, '').replace(/\D/g, ''),
   );
   const [telefono, setTelefono] = useState(initial?.telefono ?? '');
   const [activa, setActiva] = useState(initial?.activa ?? true);

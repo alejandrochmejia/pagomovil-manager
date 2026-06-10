@@ -13,6 +13,8 @@ import {
   login as loginApi,
   register as registerApi,
 } from '@/services/auth.service';
+import { invalidateStats } from '@/services/stats.cache';
+import { invalidateCuentas } from '@/services/cuentas.store';
 import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -114,12 +116,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearSession();
+    invalidateStats();
+    invalidateCuentas();
     setUser(null);
     setEmpresas([]);
     setEmpresaId(null);
   }, []);
 
   const switchEmpresa = useCallback((id: number) => {
+    // Limpiar caches por-empresa para no mostrar datos del tenant anterior.
+    invalidateStats();
+    invalidateCuentas();
     storeEmpresaId(id);
     setEmpresaId(id);
   }, []);

@@ -1,9 +1,11 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from config import supabase, supabase_auth
 from dependencies import get_current_user
-from rbac import can_change_role, MANAGEABLE_ROLES, ROLES
+from rbac import can_change_role, MANAGEABLE_ROLES, ROLES, has_permission
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
@@ -60,12 +62,17 @@ async def create_empresa(req: EmpresaCreate, user: dict = Depends(get_current_us
     }).execute()
     empresa = emp_res.data[0]
 
-    # Creador siempre es dueno
-    supabase.table("empresa_miembros").insert({
-        "empresa_id": empresa["id"],
-        "user_id": user["id"],
-        "rol": "dueno",
-    }).execute()
+    # Creador siempre es dueno. Si falla, revertir la empresa para no dejarla
+    # huerfana (sin dueno, inaccesible y contando contra el limite).
+    try:
+        supabase.table("empresa_miembros").insert({
+            "empresa_id": empresa["id"],
+            "user_id": user["id"],
+            "rol": "dueno",
+        }).execute()
+    except Exception:
+        supabase.table("empresas").delete().eq("id", empresa["id"]).execute()
+        raise HTTPException(status_code=500, detail="No se pudo crear la empresa")
 
     return empresa
 
@@ -161,8 +168,8 @@ async def remove_miembro(empresa_id: int, miembro_id: int, user: dict = Depends(
 @router.post("/{empresa_id}/invitar")
 async def invite_member(empresa_id: int, req: InviteRequest, user: dict = Depends(get_current_user)):
     actor_rol = _get_rol(empresa_id, user["id"])
-    if actor_rol not in ("dueno", "admin"):
-        raise HTTPException(status_code=403, detail="Solo dueno y admin pueden invitar")
+    if not has_permission(actor_rol, "gestion_usuarios"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para invitar miembros")
 
     if req.rol not in INVITABLE_ROLES:
         raise HTTPException(status_code=400, detail=f"Rol invalido. Opciones: {', '.join(INVITABLE_ROLES)}")
@@ -221,6 +228,31 @@ async def accept_invitation(token: str, user: dict = Depends(get_current_user)):
     if inv["email"] != user["email"]:
         raise HTTPException(status_code=403, detail="Esta invitacion no es para tu email")
 
+    # Rechazar invitaciones caducadas (expira_en por defecto now() + 7 dias).
+    expira_en = inv.get("expira_en")
+    if expira_en:
+        try:
+            exp = datetime.fromisoformat(str(expira_en).replace("Z", "+00:00"))
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+        except ValueError:
+            exp = None
+        if exp and exp < datetime.now(timezone.utc):
+            supabase.table("invitaciones").update({"estado": "expirada"}).eq("id", inv["id"]).execute()
+            raise HTTPException(status_code=410, detail="La invitacion ha expirado")
+
+    # Evitar duplicar la membresia (el UNIQUE empresa_id+user_id daria 500).
+    ya_miembro = (
+        supabase.table("empresa_miembros")
+        .select("id")
+        .eq("empresa_id", inv["empresa_id"])
+        .eq("user_id", user["id"])
+        .execute()
+    )
+    if ya_miembro.data:
+        supabase.table("invitaciones").update({"estado": "aceptada"}).eq("id", inv["id"]).execute()
+        raise HTTPException(status_code=400, detail="Ya eres miembro de esta empresa")
+
     supabase.table("empresa_miembros").insert({
         "empresa_id": inv["empresa_id"],
         "user_id": user["id"],
@@ -255,5 +287,5 @@ def _get_rol(empresa_id: int, user_id: str) -> str:
 
 def _require_admin_or_dueno(empresa_id: int, user_id: str):
     rol = _get_rol(empresa_id, user_id)
-    if rol not in ("dueno", "admin"):
-        raise HTTPException(status_code=403, detail="Necesitas ser admin o dueno")
+    if not has_permission(rol, "gestion_usuarios"):
+        raise HTTPException(status_code=403, detail="Necesitas permiso de gestion de usuarios")

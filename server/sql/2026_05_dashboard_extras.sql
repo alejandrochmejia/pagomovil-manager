@@ -13,7 +13,7 @@ as $$
       count(*)::bigint as cantidad
     from public.pagos
     where empresa_id = p_empresa_id
-      and estado <> 'anulado'
+      and estado = 'confirmado'
       and fecha >= (date_trunc('month', current_date) - interval '1 month')::date
       and fecha <  date_trunc('month', current_date)::date
   ),
@@ -21,7 +21,7 @@ as $$
     select coalesce(avg(monto), 0)::numeric as promedio
     from public.pagos
     where empresa_id = p_empresa_id
-      and estado <> 'anulado'
+      and estado = 'confirmado'
   )
   select json_build_object(
     'total_mes_anterior',         (select total    from mes_anterior),
@@ -50,7 +50,7 @@ as $$
   from meses m
   left join public.pagos p
     on p.empresa_id = p_empresa_id
-   and p.estado <> 'anulado'
+   and p.estado = 'confirmado'
    and p.fecha >= m.inicio
    and p.fecha <  (m.inicio + interval '1 month')::date
   group by m.inicio

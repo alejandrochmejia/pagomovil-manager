@@ -3,7 +3,9 @@ import { Capacitor } from '@capacitor/core';
 import { Network } from '@capacitor/network';
 
 export function useNetworkStatus() {
-  const [online, setOnline] = useState(true);
+  const [online, setOnline] = useState(
+    () => Capacitor.isNativePlatform() || typeof navigator === 'undefined' || navigator.onLine,
+  );
 
   useEffect(() => {
     let removed = false;
@@ -22,7 +24,6 @@ export function useNetworkStatus() {
         handlePromise.then((h) => h.remove());
       };
     } else {
-      setOnline(navigator.onLine);
       const handleOnline = () => setOnline(true);
       const handleOffline = () => setOnline(false);
       window.addEventListener('online', handleOnline);

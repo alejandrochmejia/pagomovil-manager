@@ -19,7 +19,7 @@ import {
   ESTADOS_SELECCIONABLES,
   type EstadoPago,
 } from '@/utils/constants';
-import { isValidCedula } from '@/utils/validators';
+import { isValidCedula, isValidReferencia, isValidPhone, normalizePhone } from '@/utils/validators';
 import ImageLightbox from '@/components/atoms/ImageLightbox/ImageLightbox';
 import Input from '@/components/atoms/Input/Input';
 import Select from '@/components/atoms/Select/Select';
@@ -145,17 +145,20 @@ export default function ScanPreview({
     referencia.trim().length > 0 && dupCheck?.duplicate === true && !!dupCheck.matches[0];
 
   function buildPagoData(): Omit<Pago, 'id' | 'creado_en' | 'actualizado_en'> {
+    const telNorm = scanResult.telefono ? normalizePhone(scanResult.telefono) : '';
     return {
       monto: Number(monto),
       banco,
       cedula: `${tipoCedula}-${cedulaNum}`,
-      telefono: scanResult.telefono ?? undefined,
+      telefono: telNorm && isValidPhone(telNorm) ? telNorm : undefined,
       referencia,
       fecha,
       hora: hora || undefined,
       concepto: concepto || undefined,
       cuenta_receptora_id: cuentaId ? Number(cuentaId) : undefined,
       estado,
+      // Vincula el pago con el escaneo para activar la deteccion de "no coincide".
+      scan_log_id: scanResult.scan_log_id,
     };
   }
 
@@ -182,7 +185,7 @@ export default function ScanPreview({
     if (!monto || isNaN(montoNum) || montoNum <= 0) e.monto = 'Monto inválido';
     if (!banco) e.banco = 'Selecciona un banco';
     if (!isValidCedula(`${tipoCedula}-${cedulaNum}`)) e.cedula = 'Cédula inválida';
-    if (!referencia.trim()) e.referencia = 'Referencia requerida';
+    if (!isValidReferencia(referencia)) e.referencia = 'Referencia inválida (4 a 40 dígitos)';
     if (!fecha) e.fecha = 'Fecha requerida';
     setErrors(e);
     if (Object.keys(e).length > 0) return;

@@ -85,6 +85,7 @@ def generate_pagos_pdf(
     items: list[dict],
     date_range: dict | None,
     empresa_name: str,
+    nota: str | None = None,
 ) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -132,6 +133,14 @@ def generate_pagos_pdf(
         f"&middot; Total confirmado: <b>{_format_bs(total_amount)}</b>"
     )
     story.append(Paragraph(summary_html, summary_style))
+    if nota:
+        nota_style = ParagraphStyle(
+            "nota",
+            parent=summary_style,
+            fontSize=8,
+            textColor=colors.HexColor("#b45309"),
+        )
+        story.append(Paragraph(nota, nota_style))
     story.append(Spacer(1, 10))
 
     if not items:

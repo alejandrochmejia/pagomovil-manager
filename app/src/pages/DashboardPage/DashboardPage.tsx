@@ -7,7 +7,7 @@ import type { KpiSection } from '@/types/common';
 import {
   IconHome,
   IconCurrencyDollar,
-  IconWallet,
+  IconBuildingBank,
   IconSettings,
   IconArrowsExchange,
   IconAlertTriangle,
@@ -23,11 +23,11 @@ import DashboardCuentas from '@/components/organisms/DashboardCuentas/DashboardC
 import DashboardOperaciones from '@/components/organisms/DashboardOperaciones/DashboardOperaciones';
 import styles from './DashboardPage.module.css';
 
-const ALL_TABS: { key: KpiSection; label: string; icon: React.ReactNode; needs: 'any' | 'full' | 'basic' }[] = [
+const ALL_TABS: { key: KpiSection; label: string; icon: React.ReactNode; needs: 'any' | 'full' | 'basic' | 'kpi' }[] = [
   { key: 'resumen', label: 'Resumen', icon: <IconHome size={16} stroke={1.5} />, needs: 'any' },
   { key: 'finanzas', label: 'Finanzas', icon: <IconCurrencyDollar size={16} stroke={1.5} />, needs: 'full' },
-  { key: 'cuentas', label: 'Cuentas', icon: <IconWallet size={16} stroke={1.5} />, needs: 'full' },
-  { key: 'operaciones', label: 'Operaciones', icon: <IconSettings size={16} stroke={1.5} />, needs: 'full' },
+  { key: 'cuentas', label: 'Cuentas', icon: <IconBuildingBank size={16} stroke={1.5} />, needs: 'full' },
+  { key: 'operaciones', label: 'Operaciones', icon: <IconSettings size={16} stroke={1.5} />, needs: 'kpi' },
 ];
 
 export default function DashboardPage() {
@@ -36,6 +36,7 @@ export default function DashboardPage() {
     if (t.needs === 'any') return true;
     if (t.needs === 'full') return perms.canSeeFullDashboard;
     if (t.needs === 'basic') return perms.canSeeBasicKpis;
+    if (t.needs === 'kpi') return perms.canSeeFullDashboard || perms.canSeeBasicKpis;
     return false;
   }), [perms.canSeeFullDashboard, perms.canSeeBasicKpis]);
 
@@ -61,7 +62,7 @@ export default function DashboardPage() {
 
   const fmt = useCallback(
     (bs: number) => {
-      if (showUsd && rate) return formatCurrencyUsd(bs / rate.promedio);
+      if (showUsd && rate && rate.promedio > 0) return formatCurrencyUsd(bs / rate.promedio);
       return formatCurrencyBs(bs);
     },
     [showUsd, rate],
@@ -69,7 +70,7 @@ export default function DashboardPage() {
 
   const fmtShort = useCallback(
     (bs: number) => {
-      if (showUsd && rate) return formatCurrency(bs / rate.promedio);
+      if (showUsd && rate && rate.promedio > 0) return formatCurrency(bs / rate.promedio);
       return formatCurrency(bs);
     },
     [showUsd, rate],

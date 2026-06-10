@@ -37,7 +37,9 @@ def can_change_role(actor_role: str, target_current_role: str, target_new_role: 
     if target_new_role == "dueno":
         return False
     manageable = MANAGEABLE_ROLES.get(actor_role, set())
-    return target_current_role in (manageable | {target_current_role}) and target_new_role in manageable
+    # El actor solo puede tocar a alguien cuyo rol actual Y nuevo estén ambos
+    # dentro de su conjunto manejable (un admin NO puede tocar a otro admin).
+    return target_current_role in manageable and target_new_role in manageable
 
 
 def has_permission(role: str, permission: str) -> bool:
@@ -66,7 +68,10 @@ def require_permission(permission: str):
         raw = request.headers.get("X-Empresa-Id")
         if not raw:
             raise HTTPException(status_code=400, detail="X-Empresa-Id requerido")
-        empresa_id = int(raw)
+        try:
+            empresa_id = int(raw)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="X-Empresa-Id invalido")
         rol = _get_role(empresa_id, user["id"])
         if not has_permission(rol, permission):
             raise HTTPException(status_code=403, detail="No tienes permiso para esta accion")
@@ -82,6 +87,9 @@ def get_user_with_role(
     raw = request.headers.get("X-Empresa-Id")
     if not raw:
         raise HTTPException(status_code=400, detail="X-Empresa-Id requerido")
-    empresa_id = int(raw)
+    try:
+        empresa_id = int(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="X-Empresa-Id invalido")
     rol = _get_role(empresa_id, user["id"])
     return {**user, "empresa_id": empresa_id, "rol": rol}

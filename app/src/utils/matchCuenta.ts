@@ -21,11 +21,19 @@ function normalizeDigits(s: string | null | undefined): string {
   return s.replace(/\D/g, '');
 }
 
-function bancoMatches(scanBanco: string | null | undefined, cuentaBanco: string): boolean {
-  const a = normalizeBanco(scanBanco);
-  const b = normalizeBanco(cuentaBanco);
+function bancoNamesMatch(a: string, b: string): boolean {
   if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
+  if (a === b) return true;
+  // Solo permitir coincidencia por subcadena cuando el nombre contenido es
+  // suficientemente largo, para evitar falsos positivos con nombres cortos
+  // (p. ej. "bod", "bnc", "plaza") dentro de texto ruidoso del OCR.
+  if (b.length >= 5 && a.includes(b)) return true;
+  if (a.length >= 5 && b.includes(a)) return true;
+  return false;
+}
+
+function bancoMatches(scanBanco: string | null | undefined, cuentaBanco: string): boolean {
+  return bancoNamesMatch(normalizeBanco(scanBanco), normalizeBanco(cuentaBanco));
 }
 
 function phoneMatches(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -75,10 +83,7 @@ export function findClosestBanco(scanBanco: string | null | undefined): string {
   if (!normalized) return '';
   const exact = BANCOS.find((b) => normalizeBanco(b.nombre) === normalized);
   if (exact) return exact.nombre;
-  const partial = BANCOS.find((b) => {
-    const nb = normalizeBanco(b.nombre);
-    return nb && (normalized.includes(nb) || nb.includes(normalized));
-  });
+  const partial = BANCOS.find((b) => bancoNamesMatch(normalized, normalizeBanco(b.nombre)));
   return partial?.nombre ?? '';
 }
 

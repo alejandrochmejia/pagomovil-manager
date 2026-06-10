@@ -4,7 +4,7 @@ import {
   IconChartBar,
   IconCoin,
   IconCamera,
-  IconUser,
+  IconBuildingBank,
   IconSettings,
 } from '@tabler/icons-react';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -26,7 +26,7 @@ export default function NavBar() {
     { to: '/', label: 'Inicio', icon: <IconChartBar size={22} stroke={1.5} />, visible: true },
     { to: '/pagos', label: 'Pagos', icon: <IconCoin size={22} stroke={1.5} />, visible: true },
     { to: '/scan', label: 'Escanear', icon: <IconCamera size={22} stroke={1.5} />, visible: perms.canScan },
-    { to: '/cuentas', label: 'Cuentas', icon: <IconUser size={22} stroke={1.5} />, visible: perms.canManageCuentas },
+    { to: '/cuentas', label: 'Cuentas', icon: <IconBuildingBank size={22} stroke={1.5} />, visible: perms.canManageCuentas },
     { to: '/settings', label: 'Ajustes', icon: <IconSettings size={22} stroke={1.5} />, visible: true },
   ], [perms.canScan, perms.canManageCuentas]);
 

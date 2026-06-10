@@ -21,6 +21,7 @@ import Select from '@/components/atoms/Select/Select';
 import Modal from '@/components/atoms/Modal/Modal';
 import Spinner from '@/components/atoms/Spinner/Spinner';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
+import ErrorBanner from '@/components/atoms/ErrorBanner/ErrorBanner';
 import PagoCard from '@/components/molecules/PagoCard/PagoCard';
 import PagoForm from '@/components/molecules/PagoForm/PagoForm';
 import PagoDetail from '@/components/molecules/PagoDetail/PagoDetail';
@@ -30,7 +31,6 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './PagosPage.module.css';
 
 const PAGE_SIZE = 25;
-const SEARCH_DEBOUNCE_MS = 300;
 
 interface ActiveFilters {
   estado?: EstadoPago;
@@ -85,7 +85,7 @@ export default function PagosPage() {
     return desde && hasta ? { from: desde, to: hasta } : getDefaultDateRange();
   });
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [actionError, setActionError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Pago | undefined>();
   const [viewing, setViewing] = useState<Pago | undefined>();
@@ -139,11 +139,6 @@ export default function PagosPage() {
     return map;
   }, [rates, currentRate]);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [search]);
-
   const filterOpts = useMemo(
     () => ({
       estado: filters.estado,
@@ -158,25 +153,28 @@ export default function PagosPage() {
   const activeCount = activeFilterCount(filters);
 
   useEffect(() => {
+    let ignore = false;
     setLoading(true);
     setError(false);
-    getPagosByDateRange(range, 1, PAGE_SIZE, debouncedSearch, filterOpts)
+    getPagosByDateRange(range, 1, PAGE_SIZE, search, filterOpts)
       .then((res) => {
+        if (ignore) return;
         setPagos(res.items);
         setTotal(res.total);
         setHasMore(res.has_more);
         setPage(1);
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [range, debouncedSearch, version, filterOpts]);
+      .catch(() => { if (!ignore) setError(true); })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
+  }, [range, search, version, filterOpts]);
 
   async function loadMore() {
     if (loading || !hasMore) return;
     setLoading(true);
     try {
       const next = page + 1;
-      const res = await getPagosByDateRange(range, next, PAGE_SIZE, debouncedSearch, filterOpts);
+      const res = await getPagosByDateRange(range, next, PAGE_SIZE, search, filterOpts);
       setPagos((prev) => [...prev, ...res.items]);
       setHasMore(res.has_more);
       setPage(next);
@@ -224,8 +222,12 @@ export default function PagosPage() {
 
   async function handleChangeEstado(pago: Pago, nuevo: EstadoPago) {
     if (!pago.id) return;
-    await updatePago(pago.id, { estado: nuevo });
-    reload();
+    try {
+      await updatePago(pago.id, { estado: nuevo });
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'No se pudo cambiar el estado del pago');
+    }
   }
 
   const handleSearch = useCallback((val: string) => setSearch(val), []);
@@ -292,17 +294,28 @@ export default function PagosPage() {
 
   async function handleResolve() {
     if (!viewing?.id) return;
-    const updated = await resolverNoCoincidente(viewing.id);
-    setViewing(updated);
-    reload();
+    try {
+      const updated = await resolverNoCoincidente(viewing.id);
+      setViewing(updated);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'No se pudo resolver el pago');
+    }
   }
 
   async function handleDelete() {
-    if (deleting?.id) {
-      await deletePago(deleting.id);
+    if (!deleting?.id) {
+      setDeleting(undefined);
+      return;
     }
-    setDeleting(undefined);
-    reload();
+    try {
+      await deletePago(deleting.id);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'No se pudo eliminar el pago');
+    } finally {
+      setDeleting(undefined);
+    }
   }
 
   return (
@@ -328,6 +341,8 @@ export default function PagosPage() {
           </div>
         }
       />
+
+      <ErrorBanner message={actionError} onDismiss={() => setActionError('')} />
 
       <div className={styles.filters}>
         <div className={styles.searchRow}>
@@ -420,9 +435,9 @@ export default function PagosPage() {
         <EmptyState
           icon={<IconCoin size={48} stroke={1.5} />}
           title="Sin pagos"
-          description={debouncedSearch ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
+          description={search ? 'No se encontraron resultados' : 'Registra o escanea tu primer pago'}
           action={
-            !debouncedSearch && perms.canCreatePago ? (
+            !search && perms.canCreatePago ? (
               <Button onClick={() => { setEditing(undefined); setShowForm(true); }}>Registrar pago</Button>
             ) : undefined
           }
@@ -461,6 +476,7 @@ export default function PagosPage() {
           isOpen={showForm}
           onClose={closeEditModal}
           title={editing ? 'Editar pago' : 'Nuevo pago'}
+          closeOnBackdrop={false}
         >
           {editing && perms.canScan && (
             <div className={styles.comprobanteEdit}>

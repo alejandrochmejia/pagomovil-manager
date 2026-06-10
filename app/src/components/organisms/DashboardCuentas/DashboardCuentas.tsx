@@ -1,5 +1,5 @@
 import type { StatsBreakdown, DateRange } from '@/types/common';
-import { IconWallet, IconCalendarOff } from '@tabler/icons-react';
+import { IconBuildingBank, IconCalendarOff } from '@tabler/icons-react';
 import KpiSection from '@/components/molecules/KpiSection/KpiSection';
 import AccountRanking from '@/components/molecules/AccountRanking/AccountRanking';
 import DateRangePicker from '@/components/molecules/DateRangePicker/DateRangePicker';
@@ -40,7 +40,7 @@ export default function DashboardCuentas({
     <KpiSection
       title="Cuentas receptoras"
       subtitle="¿En qué cuentas recibes?"
-      icon={<IconWallet size={20} stroke={1.5} />}
+      icon={<IconBuildingBank size={20} stroke={1.5} />}
     >
       <DateRangePicker value={range} onChange={onRangeChange} />
 
@@ -71,8 +71,8 @@ export default function DashboardCuentas({
                   labelLine={false}
                   fontSize={10}
                 >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  {pieData.map((d, i) => (
+                    <Cell key={d.cuenta} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => fmt(Number(value))} />

@@ -55,6 +55,12 @@ const presets = [
 export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const rangoInvalido = !!value.from && !!value.to && value.to < value.from;
 
+  // No propagar un rango invalido (evita disparar fetches con desde > hasta).
+  const emit = (next: DateRange) => {
+    if (next.from && next.to && next.to < next.from) return;
+    onChange(next);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.presets}>
@@ -70,7 +76,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
           type="date"
           value={value.from}
           max={value.to || undefined}
-          onChange={(e) => onChange({ ...value, from: e.target.value })}
+          onChange={(e) => emit({ ...value, from: e.target.value })}
         />
         <Input
           label="Hasta"
@@ -78,7 +84,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
           value={value.to}
           min={value.from || undefined}
           error={rangoInvalido ? 'La fecha "Hasta" no puede ser anterior a "Desde"' : undefined}
-          onChange={(e) => onChange({ ...value, to: e.target.value })}
+          onChange={(e) => emit({ ...value, to: e.target.value })}
         />
       </div>
     </div>

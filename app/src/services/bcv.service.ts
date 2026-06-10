@@ -23,7 +23,9 @@ export function getCachedRate(): BcvRate | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as BcvRate;
+    const parsed = JSON.parse(raw) as BcvRate;
+    if (!parsed || !Number.isFinite(parsed.promedio) || parsed.promedio <= 0) return null;
+    return parsed;
   } catch {
     return null;
   }
@@ -45,9 +47,14 @@ export async function fetchBcvRate(): Promise<BcvRate> {
   if (!res.ok) throw new Error(`Error al obtener tasa BCV: ${res.status}`);
 
   const data = await res.json();
+  const promedio = Number(data?.promedio);
+  const fechaActualizacion = data?.fechaActualizacion;
+  if (!Number.isFinite(promedio) || promedio <= 0 || typeof fechaActualizacion !== 'string') {
+    throw new Error('La tasa BCV recibida no es valida');
+  }
   const rate: BcvRate = {
-    promedio: data.promedio,
-    fechaActualizacion: data.fechaActualizacion,
+    promedio,
+    fechaActualizacion,
     fetchedAt: new Date().toISOString(),
   };
 

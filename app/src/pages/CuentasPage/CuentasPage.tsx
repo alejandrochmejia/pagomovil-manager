@@ -7,11 +7,12 @@ import {
 } from '@/services/cuenta.service';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { CuentaReceptora } from '@/types/pago';
-import { IconUser, IconAlertTriangle } from '@tabler/icons-react';
+import { IconBuildingBank, IconAlertTriangle } from '@tabler/icons-react';
 import AppHeader from '@/components/atoms/AppHeader/AppHeader';
 import Button from '@/components/atoms/Button/Button';
 import Modal from '@/components/atoms/Modal/Modal';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
+import ErrorBanner from '@/components/atoms/ErrorBanner/ErrorBanner';
 import CuentaCard from '@/components/molecules/CuentaCard/CuentaCard';
 import CuentaForm from '@/components/molecules/CuentaForm/CuentaForm';
 import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
@@ -33,6 +34,7 @@ export default function CuentasPage() {
   const [editing, setEditing] = useState<CuentaReceptora | undefined>();
   const [deleting, setDeleting] = useState<CuentaReceptora | undefined>();
   const [version, setVersion] = useState(0);
+  const [actionError, setActionError] = useState('');
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -78,11 +80,18 @@ export default function CuentasPage() {
   }
 
   async function handleDelete() {
-    if (deleting?.id) {
-      await deleteCuenta(deleting.id);
+    if (!deleting?.id) {
+      setDeleting(undefined);
+      return;
     }
-    setDeleting(undefined);
-    reload();
+    try {
+      await deleteCuenta(deleting.id);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'No se pudo eliminar la cuenta');
+    } finally {
+      setDeleting(undefined);
+    }
   }
 
   return (
@@ -97,6 +106,8 @@ export default function CuentasPage() {
           ) : undefined
         }
       />
+
+      <ErrorBanner message={actionError} onDismiss={() => setActionError('')} />
 
       <div className={styles.filters}>
         <SearchBar
@@ -115,7 +126,7 @@ export default function CuentasPage() {
         />
       ) : cuentas.length === 0 && !loading ? (
         <EmptyState
-          icon={<IconUser size={48} stroke={1.5} />}
+          icon={<IconBuildingBank size={48} stroke={1.5} />}
           title="Sin cuentas"
           description={
             search
@@ -162,6 +173,7 @@ export default function CuentasPage() {
             isOpen={showForm}
             onClose={() => { setShowForm(false); setEditing(undefined); }}
             title={editing ? 'Editar cuenta' : 'Nueva cuenta'}
+            closeOnBackdrop={false}
           >
             <CuentaForm
               initial={editing}

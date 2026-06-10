@@ -17,11 +17,11 @@ DECLARE
   v_avg_ms numeric;
 BEGIN
   SELECT COUNT(*) INTO v_total_scans FROM scan_logs
-    WHERE empresa_id = p_empresa_id AND creado_en::date >= v_desde AND creado_en::date <= v_hasta;
+    WHERE empresa_id = p_empresa_id AND (creado_en AT TIME ZONE 'America/Caracas')::date >= v_desde AND (creado_en AT TIME ZONE 'America/Caracas')::date <= v_hasta;
   SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (scan_completed_at - scan_started_at)) * 1000), 0)
     INTO v_avg_ms FROM scan_logs
     WHERE empresa_id = p_empresa_id AND scan_completed_at IS NOT NULL
-      AND creado_en::date >= v_desde AND creado_en::date <= v_hasta;
+      AND (creado_en AT TIME ZONE 'America/Caracas')::date >= v_desde AND (creado_en AT TIME ZONE 'America/Caracas')::date <= v_hasta;
 
   SELECT jsonb_build_object(
     'cantidad', (SELECT COUNT(*) FROM pagos
@@ -37,7 +37,7 @@ BEGIN
       GROUP BY banco, referencia HAVING COUNT(*) > 1) dup),
     'transacciones_editadas', (SELECT COUNT(*) FROM audit_log
       WHERE accion = 'editar' AND empresa_id = p_empresa_id
-        AND creado_en::date >= v_desde AND creado_en::date <= v_hasta)
+        AND (creado_en AT TIME ZONE 'America/Caracas')::date >= v_desde AND (creado_en AT TIME ZONE 'America/Caracas')::date <= v_hasta)
   ) INTO result;
   RETURN result;
 END;

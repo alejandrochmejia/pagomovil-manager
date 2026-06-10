@@ -103,12 +103,12 @@ def _sign_comprobantes_in_place(items: list[dict]) -> None:
             item["imagen_uri"] = url
 
 
-def _evaluar_coincidencia(empresa_id: int, scan_log_id: int | None, pago_final: dict) -> bool | None:
-    """Compara los datos del pago contra los campos extraídos por IA del scan
-    indicado. Devuelve True/False (no_coincide) o None si no se puede evaluar
+def _evaluar_coincidencia(empresa_id: int, scan_log_id: int | None, pago_final: dict) -> tuple[bool | None, list[str]]:
+    """Compara los datos del pago contra los campos extraídos por IA del scan.
+    Devuelve (no_coincide, campos_distintos); (None, []) si no se puede evaluar
     (sin scan_log o sin datos extraídos) — el caller no debe tocar el flag."""
     if not scan_log_id:
-        return None
+        return None, []
     res = (
         supabase.table("scan_logs")
         .select("campos_extraidos")
@@ -117,12 +117,12 @@ def _evaluar_coincidencia(empresa_id: int, scan_log_id: int | None, pago_final: 
         .execute()
     )
     if not res.data:
-        return None
+        return None, []
     extraidos = res.data[0].get("campos_extraidos")
     if not extraidos:
-        return None
-    no_coincide, _ = compare_scan_to_pago(extraidos, pago_final)
-    return no_coincide
+        return None, []
+    no_coincide, campos = compare_scan_to_pago(extraidos, pago_final)
+    return no_coincide, campos
 
 EXPORT_PAGE_SIZE = 500
 EXPORT_COLUMNS = [
@@ -160,6 +160,61 @@ def _constrain_dates_by_role(rol: str, desde: str | None, hasta: str | None) -> 
     return desde, hasta
 
 
+def _assert_cuenta_pertenece(empresa_id: int, cuenta_id: int | None) -> None:
+    """Evita vincular un pago a una cuenta receptora de otra empresa (cross-tenant)."""
+    if cuenta_id is None:
+        return
+    res = (
+        supabase.table("cuentas_receptoras")
+        .select("id")
+        .eq("id", cuenta_id)
+        .eq("empresa_id", empresa_id)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=400, detail="La cuenta receptora no pertenece a esta empresa")
+
+
+def _load_pago_or_404(empresa_id: int, pago_id: int) -> dict:
+    res = (
+        supabase.table("pagos")
+        .select("*")
+        .eq("id", pago_id)
+        .eq("empresa_id", empresa_id)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    return res.data[0]
+
+
+def _assert_fecha_editable_por_rol(rol: str, fecha: str | None) -> None:
+    """Cajero solo puede mutar pagos de hoy; supervisor, de los ultimos 7 dias."""
+    today = date.today().isoformat()
+    if rol == "cajero" and fecha != today:
+        raise HTTPException(status_code=403, detail="Solo puedes modificar pagos de hoy")
+    if rol == "supervisor":
+        min_date = (date.today() - timedelta(days=7)).isoformat()
+        if fecha and fecha < min_date:
+            raise HTTPException(status_code=403, detail="Solo puedes modificar pagos de los ultimos 7 dias")
+
+
+def _safe_remove_comprobante(path: str) -> None:
+    """Borra (best-effort) un objeto de Storage para no dejar huerfanos si el insert falla."""
+    try:
+        supabase.storage.from_(COMPROBANTES_BUCKET).remove([path])
+    except Exception:
+        pass
+
+
+def _csv_safe(value) -> str:
+    """Neutraliza formula injection en CSV (Excel/LibreOffice)."""
+    s = "" if value is None else str(value)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 def _apply_filters(query, desde: str | None, hasta: str | None, q: str | None):
     if desde:
         query = query.gte("fecha", desde)
@@ -177,7 +232,7 @@ def _apply_filters(query, desde: str | None, hasta: str | None, q: str | None):
             ]
             try:
                 monto_val = float(term)
-                filters.append(f"monto.eq.{monto_val}")
+                filters.append(f"monto.eq.{monto_val:.2f}")
             except ValueError:
                 pass
             query = query.or_(",".join(filters))
@@ -411,7 +466,7 @@ async def export_pagos_csv(
             chunk = io.StringIO()
             chunk_writer = csv.writer(chunk)
             for row in rows:
-                chunk_writer.writerow([row.get(col, "") if row.get(col) is not None else "" for col in EXPORT_COLUMNS])
+                chunk_writer.writerow([_csv_safe(row.get(col)) for col in EXPORT_COLUMNS])
             yield chunk.getvalue()
 
             if len(rows) < EXPORT_PAGE_SIZE:
@@ -474,14 +529,25 @@ async def export_pagos_pdf(
             break
         page += 1
 
+    nota = None
     if truncated:
-        # Marcar truncamiento agregando un item ficticio? No, mejor pasar a la metadata.
-        pass
+        cnt_q = (
+            supabase.table("pagos")
+            .select("id", count="exact")
+            .eq("empresa_id", empresa_id)
+        )
+        cnt_q = _apply_filters(cnt_q, desde, hasta, q)
+        total_real = cnt_q.range(0, 0).execute().count or len(items)
+        nota = (
+            f"Reporte truncado: se muestran las primeras {PDF_MAX_ROWS} de "
+            f"{total_real} filas. Los totales mostrados son parciales."
+        )
 
     pdf_bytes = generate_pagos_pdf(
         items,
         {"from": desde, "to": hasta} if (desde or hasta) else None,
         empresa_name,
+        nota=nota,
     )
     filename = f"pagos-{datetime.now().strftime('%Y-%m-%d-%H%M')}.pdf"
     return Response(
@@ -502,25 +568,34 @@ async def create_pago(
     data = pago.model_dump(exclude_none=True)
     data.pop("scan_log_id", None)
     data["empresa_id"] = empresa_id
+    _assert_cuenta_pertenece(empresa_id, data.get("cuenta_receptora_id"))
+
+    uploaded_path = None
     imagen_uri = data.get("imagen_uri")
     if imagen_uri and imagen_uri.startswith("data:image/"):
         try:
             data["imagen_uri"] = _upload_comprobante(empresa_id, imagen_uri)
+            uploaded_path = data["imagen_uri"] if data["imagen_uri"] != imagen_uri else None
         except HTTPException:
             raise  # p.ej. 413 por imagen demasiado grande
         except Exception as e:
             logger.warning("Fallo al subir comprobante (empresa %s): %s", empresa_id, e)
             raise HTTPException(status_code=500, detail="No se pudo subir el comprobante")
     # Re-análisis IA: si hay scan vinculado, marcar si el comprobante no coincide.
-    no_coincide = _evaluar_coincidencia(empresa_id, scan_log_id, data)
+    no_coincide, campos_dif = _evaluar_coincidencia(empresa_id, scan_log_id, data)
     if no_coincide is not None:
         data["comprobante_no_coincidente"] = no_coincide
     res = supabase.table("pagos").insert(data).execute()
     if not res.data:
+        if uploaded_path:
+            _safe_remove_comprobante(uploaded_path)
         raise HTTPException(status_code=500, detail="No se pudo crear el pago")
     created = res.data[0]
     if scan_log_id:
-        supabase.table("scan_logs").update({"pago_id": created["id"]}).eq("id", scan_log_id).execute()
+        scan_update: dict = {"pago_id": created["id"]}
+        if no_coincide is not None:
+            scan_update["campos_finales"] = {"corregido": len(campos_dif) > 0, "campos": campos_dif}
+        supabase.table("scan_logs").update(scan_update).eq("id", scan_log_id).eq("empresa_id", empresa_id).execute()
     background.add_task(_audit, "pagos", created["id"], "crear", empresa_id)
     _sign_comprobantes_in_place([created])
     return created
@@ -539,6 +614,14 @@ async def update_pago(
     if not data:
         raise HTTPException(status_code=400, detail="Nada que actualizar")
 
+    # Cargar el pago (verifica existencia/propiedad) y aplicar reglas por rol y estado.
+    actual_pago = _load_pago_or_404(empresa_id, pago_id)
+    _assert_fecha_editable_por_rol(ctx["rol"], actual_pago.get("fecha"))
+    _assert_cuenta_pertenece(empresa_id, data.get("cuenta_receptora_id"))
+    nuevo_estado = data.get("estado")
+    if nuevo_estado is not None and actual_pago.get("estado") == "anulado" and nuevo_estado != "anulado":
+        raise HTTPException(status_code=409, detail="Un pago anulado no puede cambiar de estado")
+
     imagen_uri = data.get("imagen_uri")
     comprobante_nuevo = bool(imagen_uri and imagen_uri.startswith("data:image/"))
     if comprobante_nuevo:
@@ -552,17 +635,10 @@ async def update_pago(
 
     # Re-análisis IA al cambiar el comprobante: comparar contra los datos finales
     # (pago actual fusionado con los campos editados) y (re)setear el flag.
+    campos_dif: list[str] = []
     if comprobante_nuevo and scan_log_id:
-        actual = (
-            supabase.table("pagos")
-            .select("monto, referencia, cedula")
-            .eq("id", pago_id).eq("empresa_id", empresa_id)
-            .execute()
-        )
-        if not actual.data:
-            raise HTTPException(status_code=404, detail="Pago no encontrado")
-        pago_final = {**actual.data[0], **data}
-        no_coincide = _evaluar_coincidencia(empresa_id, scan_log_id, pago_final)
+        pago_final = {**actual_pago, **data}
+        no_coincide, campos_dif = _evaluar_coincidencia(empresa_id, scan_log_id, pago_final)
         if no_coincide is not None:
             data["comprobante_no_coincidente"] = no_coincide
 
@@ -570,7 +646,10 @@ async def update_pago(
     if not res.data:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
     if scan_log_id:
-        supabase.table("scan_logs").update({"pago_id": pago_id}).eq("id", scan_log_id).eq("empresa_id", empresa_id).execute()
+        scan_update: dict = {"pago_id": pago_id}
+        if comprobante_nuevo:
+            scan_update["campos_finales"] = {"corregido": len(campos_dif) > 0, "campos": campos_dif}
+        supabase.table("scan_logs").update(scan_update).eq("id", scan_log_id).eq("empresa_id", empresa_id).execute()
     background.add_task(_audit, "pagos", pago_id, "editar", empresa_id, data)
     updated = res.data[0]
     _sign_comprobantes_in_place([updated])
@@ -585,6 +664,8 @@ async def resolver_no_coincidente(
 ):
     """Marca manualmente un pago como revisado (limpia el flag de no coincidencia)."""
     empresa_id = ctx["empresa_id"]
+    pago = _load_pago_or_404(empresa_id, pago_id)
+    _assert_fecha_editable_por_rol(ctx["rol"], pago.get("fecha"))
     res = (
         supabase.table("pagos")
         .update({"comprobante_no_coincidente": False})
@@ -606,6 +687,8 @@ async def delete_pago(
     ctx: dict = Depends(require_permission("pagos_eliminar")),
 ):
     empresa_id = ctx["empresa_id"]
+    pago = _load_pago_or_404(empresa_id, pago_id)
+    _assert_fecha_editable_por_rol(ctx["rol"], pago.get("fecha"))
     res = supabase.table("pagos").delete().eq("id", pago_id).eq("empresa_id", empresa_id).execute()
     if res.data:
         background.add_task(_audit, "pagos", pago_id, "eliminar", empresa_id)

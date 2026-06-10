@@ -9,9 +9,11 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** Si es false, tocar el backdrop no cierra (evita cierres accidentales en formularios). */
+  closeOnBackdrop?: boolean;
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, closeOnBackdrop = true }: ModalProps) {
   useBackButtonClose(isOpen, onClose);
 
   // Si algo durante el ciclo de apertura (pushState, layout reflow del portal,
@@ -38,7 +40,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={closeOnBackdrop ? onClose : undefined}>
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
         <div className={styles.handle} />
         <div className={styles.header}>

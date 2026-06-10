@@ -144,6 +144,7 @@ export default function ScanPage() {
         isOpen={showManualForm}
         onClose={() => setShowManualForm(false)}
         title="Registro manual"
+        closeOnBackdrop={false}
       >
         <PagoForm
           onSubmit={handleManualSubmit}

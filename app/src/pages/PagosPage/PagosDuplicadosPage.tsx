@@ -9,6 +9,7 @@ import Button from '@/components/atoms/Button/Button';
 import Card from '@/components/atoms/Card/Card';
 import Spinner from '@/components/atoms/Spinner/Spinner';
 import EmptyState from '@/components/atoms/EmptyState/EmptyState';
+import ErrorBanner from '@/components/atoms/ErrorBanner/ErrorBanner';
 import PagoCard from '@/components/molecules/PagoCard/PagoCard';
 import ConfirmDialog from '@/components/molecules/ConfirmDialog/ConfirmDialog';
 import styles from './PagosDuplicadosPage.module.css';
@@ -20,6 +21,7 @@ export default function PagosDuplicadosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [deleting, setDeleting] = useState<Pago | undefined>();
+  const [actionError, setActionError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,10 +41,18 @@ export default function PagosDuplicadosPage() {
   }, [load]);
 
   async function handleDelete() {
-    if (!deleting?.id) return;
-    await deletePago(deleting.id);
-    setDeleting(undefined);
-    await load();
+    if (!deleting?.id) {
+      setDeleting(undefined);
+      return;
+    }
+    try {
+      await deletePago(deleting.id);
+      await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'No se pudo eliminar el pago');
+    } finally {
+      setDeleting(undefined);
+    }
   }
 
   const totalPagos = groups.reduce((acc, g) => acc + g.cantidad, 0);
@@ -60,6 +70,8 @@ export default function PagosDuplicadosPage() {
           </Button>
         }
       />
+
+      <ErrorBanner message={actionError} onDismiss={() => setActionError('')} />
 
       {loading && (
         <div className={styles.center}>

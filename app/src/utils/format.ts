@@ -2,6 +2,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export function formatCurrency(amount: number): string {
+  if (!Number.isFinite(amount)) return '—';
   return new Intl.NumberFormat('es-VE', {
     style: 'decimal',
     minimumFractionDigits: 2,
