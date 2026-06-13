@@ -37,7 +37,7 @@ export default function DashboardOperaciones({
         <StatCard
           label="Transacciones"
           value={String(rangeStats?.cantidad ?? 0)}
-          sublabel="pagos en el periodo"
+          sublabel="pagos en el período"
         />
         <StatCard
           label="Total scans"
@@ -64,7 +64,7 @@ export default function DashboardOperaciones({
         <AlertCard
           title="Transacciones editadas"
           value={editadas}
-          description="Ediciones en el periodo"
+          description="Ediciones en el período"
           variant={editadas > 10 ? 'warning' : 'info'}
           onClick={editadas > 0 ? () => navigate(`/pagos?editados=true&${qs}`) : undefined}
         />

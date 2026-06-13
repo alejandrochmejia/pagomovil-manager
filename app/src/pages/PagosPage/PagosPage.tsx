@@ -363,7 +363,7 @@ export default function PagosPage() {
           <SearchBar
             value={search}
             onChange={handleSearch}
-            placeholder="Buscar por banco, cedula, ref..."
+            placeholder="Buscar por banco, cédula, ref..."
           />
           <button
             type="button"

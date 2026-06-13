@@ -29,7 +29,7 @@ async def upsert_bcv_rate(
     _user: dict = Depends(get_current_user),
 ):
     if payload.promedio <= 0:
-        raise HTTPException(status_code=400, detail="Promedio invalido")
+        raise HTTPException(status_code=400, detail="Promedio inválido")
 
     record = {
         "fecha": payload.fecha,

@@ -99,7 +99,7 @@ async def login(req: LoginRequest):
             },
         }
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Credenciales invalidas")
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
 
 @router.post("/refresh")
@@ -111,7 +111,7 @@ async def refresh_token(req: RefreshRequest):
             "refresh_token": res.session.refresh_token,
         }
     except Exception:
-        raise HTTPException(status_code=401, detail="Refresh token invalido")
+        raise HTTPException(status_code=401, detail="Refresh token inválido")
 
 
 @router.post("/reset-password")
@@ -121,10 +121,10 @@ async def reset_password(req: ResetPasswordRequest):
             req.email,
             options={"redirect_to": RESET_REDIRECT_URL},
         )
-        return {"message": "Email de recuperacion enviado"}
+        return {"message": "Email de recuperación enviado"}
     except Exception as e:
         logger.warning("Fallo en reset-password: %s", e)
-        raise HTTPException(status_code=400, detail="No se pudo enviar el email de recuperacion.")
+        raise HTTPException(status_code=400, detail="No se pudo enviar el email de recuperación.")
 
 
 @router.get("/me")

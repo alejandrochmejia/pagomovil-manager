@@ -54,7 +54,7 @@ async def create_empresa(req: EmpresaCreate, user: dict = Depends(get_current_us
         .execute()
     )
     if count_res.count >= MAX_EMPRESAS:
-        raise HTTPException(status_code=400, detail=f"Maximo {MAX_EMPRESAS} empresas permitidas")
+        raise HTTPException(status_code=400, detail=f"Máximo {MAX_EMPRESAS} empresas permitidas")
 
     emp_res = supabase.table("empresas").insert({
         "nombre": req.nombre,
@@ -102,7 +102,7 @@ async def update_miembro_rol(empresa_id: int, miembro_id: int, req: RolUpdate, u
     actor_rol = _get_rol(empresa_id, user["id"])
 
     if req.rol not in INVITABLE_ROLES:
-        raise HTTPException(status_code=400, detail=f"Rol invalido. Opciones: {', '.join(INVITABLE_ROLES)}")
+        raise HTTPException(status_code=400, detail=f"Rol inválido. Opciones: {', '.join(INVITABLE_ROLES)}")
 
     # Obtener rol actual del target
     target_res = (
@@ -119,7 +119,7 @@ async def update_miembro_rol(empresa_id: int, miembro_id: int, req: RolUpdate, u
 
     if not can_change_role(actor_rol, target_rol, req.rol):
         if target_rol == "dueno":
-            raise HTTPException(status_code=403, detail="No se puede cambiar el rol del dueno")
+            raise HTTPException(status_code=403, detail="No se puede cambiar el rol del dueño")
         raise HTTPException(status_code=403, detail="No tienes permiso para este cambio de rol")
 
     res = (
@@ -145,7 +145,7 @@ async def remove_miembro(empresa_id: int, miembro_id: int, user: dict = Depends(
         .execute()
     )
     if target_res.data and target_res.data[0]["rol"] == "dueno":
-        raise HTTPException(status_code=403, detail="No se puede eliminar al dueno")
+        raise HTTPException(status_code=403, detail="No se puede eliminar al dueño")
 
     supabase.table("empresa_miembros").delete().eq("id", miembro_id).eq("empresa_id", empresa_id).execute()
 
@@ -159,7 +159,7 @@ async def invite_member(empresa_id: int, req: InviteRequest, user: dict = Depend
         raise HTTPException(status_code=403, detail="No tienes permiso para invitar miembros")
 
     if req.rol not in INVITABLE_ROLES:
-        raise HTTPException(status_code=400, detail=f"Rol invalido. Opciones: {', '.join(INVITABLE_ROLES)}")
+        raise HTTPException(status_code=400, detail=f"Rol inválido. Opciones: {', '.join(INVITABLE_ROLES)}")
 
     manageable = MANAGEABLE_ROLES.get(actor_rol, set())
     if req.rol not in manageable:
@@ -174,7 +174,7 @@ async def invite_member(empresa_id: int, req: InviteRequest, user: dict = Depend
         .execute()
     )
     if existing.data:
-        raise HTTPException(status_code=400, detail="Ya hay una invitacion pendiente para este email")
+        raise HTTPException(status_code=400, detail="Ya hay una invitación pendiente para este email")
 
     res = supabase.table("invitaciones").insert({
         "empresa_id": empresa_id,
@@ -209,11 +209,11 @@ async def accept_invitation(token: str, user: dict = Depends(get_current_user)):
         .execute()
     )
     if not res.data:
-        raise HTTPException(status_code=404, detail="Invitacion no encontrada o expirada")
+        raise HTTPException(status_code=404, detail="Invitación no encontrada o expirada")
 
     inv = res.data[0]
     if inv["email"] != user["email"]:
-        raise HTTPException(status_code=403, detail="Esta invitacion no es para tu email")
+        raise HTTPException(status_code=403, detail="Esta invitación no es para tu email")
 
     # Rechazar invitaciones caducadas (expira_en por defecto now() + 7 dias).
     expira_en = inv.get("expira_en")
@@ -226,7 +226,7 @@ async def accept_invitation(token: str, user: dict = Depends(get_current_user)):
             exp = None
         if exp and exp < datetime.now(timezone.utc):
             supabase.table("invitaciones").update({"estado": "expirada"}).eq("id", inv["id"]).execute()
-            raise HTTPException(status_code=410, detail="La invitacion ha expirado")
+            raise HTTPException(status_code=410, detail="La invitación ha expirado")
 
     # Evitar duplicar la membresia (el UNIQUE empresa_id+user_id daria 500).
     ya_miembro = (
@@ -248,7 +248,7 @@ async def accept_invitation(token: str, user: dict = Depends(get_current_user)):
     }).execute()
 
     supabase.table("invitaciones").update({"estado": "aceptada"}).eq("id", inv["id"]).execute()
-    return {"message": "Invitacion aceptada", "empresa_id": inv["empresa_id"]}
+    return {"message": "Invitación aceptada", "empresa_id": inv["empresa_id"]}
 
 
 @router.delete("/{empresa_id}/invitaciones/{inv_id}", status_code=204)
@@ -275,4 +275,4 @@ def _get_rol(empresa_id: int, user_id: str) -> str:
 def _require_admin_or_dueno(empresa_id: int, user_id: str):
     rol = _get_rol(empresa_id, user_id)
     if not has_permission(rol, "gestion_usuarios"):
-        raise HTTPException(status_code=403, detail="Necesitas permiso de gestion de usuarios")
+        raise HTTPException(status_code=403, detail="Necesitas permiso de gestión de usuarios")

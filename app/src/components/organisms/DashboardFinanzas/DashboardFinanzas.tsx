@@ -91,14 +91,14 @@ export default function DashboardFinanzas({
         <EmptyState
           icon={<IconCalendarOff size={40} stroke={1.5} />}
           title="Sin transacciones"
-          description="No hay pagos en el periodo seleccionado"
+          description="No hay pagos en el período seleccionado"
         />
       ) : (
         <>
           <StatCard
             label="Ticket promedio"
             value={fmt(ticketRango)}
-            sublabel={`${cantidadRango} ${cantidadRango === 1 ? 'pago' : 'pagos'} en el periodo`}
+            sublabel={`${cantidadRango} ${cantidadRango === 1 ? 'pago' : 'pagos'} en el período`}
           />
           {breakdownDia.length > 0 && (
             <Card>

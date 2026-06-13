@@ -58,11 +58,11 @@ async def limit_body_size(request: Request, call_next):
         try:
             too_big = int(content_length) > MAX_REQUEST_BYTES
         except ValueError:
-            return JSONResponse(status_code=400, content={"detail": "Content-Length invalido"})
+            return JSONResponse(status_code=400, content={"detail": "Content-Length inválido"})
         if too_big:
             return JSONResponse(
                 status_code=413,
-                content={"detail": f"El cuerpo de la peticion supera el limite de {MAX_REQUEST_MB:g} MB"},
+                content={"detail": f"El cuerpo de la petición supera el límite de {MAX_REQUEST_MB:g} MB"},
             )
     return await call_next(request)
 

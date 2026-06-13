@@ -50,7 +50,7 @@ def _check_scan_quota(empresa_id: int) -> None:
     if (per_day.count or 0) >= SCAN_RATE_PER_DAY:
         raise HTTPException(
             status_code=429,
-            detail=f"Limite diario de {SCAN_RATE_PER_DAY} escaneos alcanzado para esta empresa.",
+            detail=f"Límite diario de {SCAN_RATE_PER_DAY} escaneos alcanzado para esta empresa.",
             headers={"Retry-After": "3600"},
         )
 
@@ -65,10 +65,10 @@ async def scan_receipt(req: ScanRequest, ctx: dict = Depends(require_permission(
     except ImageTooLarge:
         raise HTTPException(
             status_code=413,
-            detail=f"La imagen supera el limite de {MAX_IMAGE_MB:g} MB",
+            detail=f"La imagen supera el límite de {MAX_IMAGE_MB:g} MB",
         )
     except Exception:
-        raise HTTPException(status_code=400, detail="Imagen invalida")
+        raise HTTPException(status_code=400, detail="Imagen inválida")
 
     # 2) Cuota por empresa (cada llamada a Gemini cuesta dinero).
     _check_scan_quota(empresa_id)
@@ -93,7 +93,7 @@ async def scan_receipt(req: ScanRequest, ctx: dict = Depends(require_permission(
         }).eq("id", scan_log_id).execute()
         raise HTTPException(
             status_code=502,
-            detail="El servicio de escaneo no esta disponible en este momento. Intenta de nuevo.",
+            detail="El servicio de escaneo no está disponible en este momento. Intenta de nuevo.",
         )
 
     try:

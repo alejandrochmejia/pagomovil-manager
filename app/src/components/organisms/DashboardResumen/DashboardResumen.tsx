@@ -86,7 +86,7 @@ export default function DashboardResumen({
 
       {chartData.length > 0 && (
         <Card>
-          <h3 className={styles.chartTitle}>Ingresos ultimos 12 meses</h3>
+          <h3 className={styles.chartTitle}>Ingresos últimos 12 meses</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />

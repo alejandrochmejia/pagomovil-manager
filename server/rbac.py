@@ -71,10 +71,10 @@ def require_permission(permission: str):
         try:
             empresa_id = int(raw)
         except ValueError:
-            raise HTTPException(status_code=400, detail="X-Empresa-Id invalido")
+            raise HTTPException(status_code=400, detail="X-Empresa-Id inválido")
         rol = _get_role(empresa_id, user["id"])
         if not has_permission(rol, permission):
-            raise HTTPException(status_code=403, detail="No tienes permiso para esta accion")
+            raise HTTPException(status_code=403, detail="No tienes permiso para esta acción")
         return {**user, "empresa_id": empresa_id, "rol": rol}
     return dependency
 
@@ -90,6 +90,6 @@ def get_user_with_role(
     try:
         empresa_id = int(raw)
     except ValueError:
-        raise HTTPException(status_code=400, detail="X-Empresa-Id invalido")
+        raise HTTPException(status_code=400, detail="X-Empresa-Id inválido")
     rol = _get_role(empresa_id, user["id"])
     return {**user, "empresa_id": empresa_id, "rol": rol}

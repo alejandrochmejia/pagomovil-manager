@@ -48,7 +48,7 @@ export default function DashboardCuentas({
         <EmptyState
           icon={<IconCalendarOff size={40} stroke={1.5} />}
           title="Sin transacciones"
-          description="No hay pagos en el periodo seleccionado"
+          description="No hay pagos en el período seleccionado"
         />
       ) : (
         <>

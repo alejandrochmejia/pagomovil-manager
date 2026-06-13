@@ -20,7 +20,7 @@ def get_current_user(request: Request) -> dict:
             "nombre": res.user.user_metadata.get("nombre", ""),
         }
     except Exception:
-        raise HTTPException(status_code=401, detail="Token invalido o expirado")
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
 
 
 def get_empresa_id(request: Request, user: dict = Depends(get_current_user)) -> int:
@@ -32,7 +32,7 @@ def get_empresa_id(request: Request, user: dict = Depends(get_current_user)) -> 
     try:
         empresa_id = int(raw)
     except ValueError:
-        raise HTTPException(status_code=400, detail="X-Empresa-Id invalido")
+        raise HTTPException(status_code=400, detail="X-Empresa-Id inválido")
 
     # Verificar que el usuario pertenece a la empresa
     res = (

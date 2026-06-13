@@ -49,7 +49,7 @@ def _upload_comprobante(empresa_id: int, data_uri: str) -> str:
     if len(raw) > MAX_IMAGE_BYTES:
         raise HTTPException(
             status_code=413,
-            detail=f"La imagen del comprobante supera el limite de {MAX_IMAGE_MB:g} MB",
+            detail=f"La imagen del comprobante supera el límite de {MAX_IMAGE_MB:g} MB",
         )
     path = f"empresa_{empresa_id}/{uuid.uuid4().hex}.{ext}"
     supabase.storage.from_(COMPROBANTES_BUCKET).upload(
@@ -196,7 +196,7 @@ def _assert_fecha_editable_por_rol(rol: str, fecha: str | None) -> None:
     if rol == "supervisor":
         min_date = (date.today() - timedelta(days=7)).isoformat()
         if fecha and fecha < min_date:
-            raise HTTPException(status_code=403, detail="Solo puedes modificar pagos de los ultimos 7 dias")
+            raise HTTPException(status_code=403, detail="Solo puedes modificar pagos de los últimos 7 días")
 
 
 def _safe_remove_comprobante(path: str) -> None:
